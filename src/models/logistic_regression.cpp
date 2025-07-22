@@ -5,6 +5,7 @@
 #include <iostream>
 #include <limits>
 
+using namespace models;
 
 LogisticRegression::LogisticRegression(float lr, int ep)
 {
@@ -14,6 +15,7 @@ LogisticRegression::LogisticRegression(float lr, int ep)
     std::cerr << "LogisticRegression - Warning: High learning rate (" << learning_rate_ << ") may cause divergence.\n";
   }
 }
+
 
 void LogisticRegression::fit(const std::vector<float> &x, const std::vector<int> &y)
 {

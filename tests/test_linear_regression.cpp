@@ -10,7 +10,7 @@ bool approximately_equal(float a, float b, float eps = EPSILON) {
   return std::fabs(a - b) <= eps;
 }
 
-int test_linear_regression() {
+void test_linear_regression() {
   std::vector<commons::Pointf> pts;
   const int num_samples = 100;
 
@@ -34,8 +34,6 @@ int test_linear_regression() {
     //std::cout << "x = " << test_x[i] << ", predicted y = " << pred << ", expected y = " << expect << "\n";
     std::cout << "[LinearRegression] " << (pass ? "PASSED" : "FAILED") << '\n';
   }
-
-  return 0;
 }
 
 

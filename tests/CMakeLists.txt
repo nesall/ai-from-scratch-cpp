@@ -2,8 +2,10 @@ add_executable(ai_tests
     test_main.cpp
     test_linear_regression.cpp
     test_logistic_regression.cpp
+    test_knearest_neighbors.cpp
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
+    ../src/models/knearest_neighbors.cpp
 
 )
 

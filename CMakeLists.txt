@@ -10,9 +10,11 @@ add_executable(ai_main
     include/datasynth.hpp
     include/models/linear_regression.hpp
     include/models/logistic_regression.hpp
+    include/models/knearest_neighbors.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp
+    src/models/knearest_neighbors.cpp
 )
 
 # Include headers

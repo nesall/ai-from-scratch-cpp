@@ -16,12 +16,12 @@ bool compare_outputs(const std::vector<int> &predicted, const std::vector<int> &
   return true;
 }
 
-int test_logistic_regression() {
+void test_logistic_regression() {
   // Simple linearly separable binary classification example
   std::vector<float> x_train = { 0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f };
   std::vector<int> y_train = { 0, 0, 0, 0, 1, 1, 1, 1 };
 
-  LogisticRegression model(0.1f, 1000);
+  models::LogisticRegression model(0.1f, 1000);
   model.fit(x_train, y_train);
 
   std::vector<int> predictions = model.predict(x_train);
@@ -32,6 +32,4 @@ int test_logistic_regression() {
   } else {
     std::cout << "[LogisticRegression] FAILED\n";
   }
-
-  return 0;
 }
