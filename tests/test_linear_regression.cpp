@@ -1,9 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <random>
-#include "../include/models/linear_regression.hpp"
-#include "../include/datasynth.hpp"
+#include "models/linear_regression.hpp"
+#include "datasynth.hpp"
 
 constexpr float EPSILON = 0.2f; // Acceptable error margin for predictions
 
@@ -32,10 +31,8 @@ int test_linear_regression() {
     float expect = expected_y[i];
     bool pass = approximately_equal(pred, expect);
 
-    std::cout << "x = " << test_x[i]
-      << ", predicted y = " << pred
-      << ", expected y = " << expect
-      << " --> " << (pass ? "PASSED" : "FAILED") << '\n';
+    //std::cout << "x = " << test_x[i] << ", predicted y = " << pred << ", expected y = " << expect << "\n";
+    std::cout << "[LinearRegression] " << (pass ? "PASSED" : "FAILED") << '\n';
   }
 
   return 0;
