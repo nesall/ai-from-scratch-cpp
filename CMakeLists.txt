@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(AIFromScratchCPP)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -17,3 +17,9 @@ target_include_directories(ai_main PRIVATE include)
 # Add tests
 enable_testing()
 add_subdirectory(tests)
+
+# Add visualization option
+option(ENABLE_VISUALIZATION "Enable SFML visualization" ON)
+if(ENABLE_VISUALIZATION)
+    add_subdirectory(visualizer)
+endif()
