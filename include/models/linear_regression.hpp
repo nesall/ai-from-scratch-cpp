@@ -1,8 +1,9 @@
 #include <vector>
+#include "../include/common.hpp"
 
 namespace models {
 
-  class LinearRegression {
+  class LinearRegression : public commons::StepBreaker {
   private:
     float weight_ = 0;
     float bias_ = 0;
@@ -12,7 +13,7 @@ namespace models {
   public:
     LinearRegression(float lr = 0.01f, int ep = 1000);
 
-    void fit(const std::vector<float> &x, const std::vector<float> &y);
+    void fit(const std::vector<commons::Pointf> &pts);
     float predict(float x);
     std::vector<float> predict(const std::vector<float> &x_vals);
   };

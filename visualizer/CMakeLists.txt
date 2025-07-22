@@ -21,6 +21,10 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(ai_visualizer
     visualizer_main.cpp
+    plotter.hpp
+    plotter.cpp
+    vis_linear_regression.cpp
+    ../src/models/linear_regression.cpp
 )
 
 # Link SFML libraries to main executable

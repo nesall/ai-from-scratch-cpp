@@ -16,10 +16,10 @@ LinearRegression::LinearRegression(float lr, int ep)
   }
 }
 
-void LinearRegression::fit(const std::vector<float> &x, const std::vector<float> &y)
+void LinearRegression::fit(const std::vector<commons::Pointf> &pts)
 {
-  if (x.size() != y.size() || x.empty()) {
-    throw std::invalid_argument("Input vectors must be of the same non-zero length.");
+  if (pts.empty()) {
+    throw std::invalid_argument("Input vector must be non-zero length.");
   }
   weight_ = 0.0f;
   bias_ = 0.0f;
@@ -29,16 +29,19 @@ void LinearRegression::fit(const std::vector<float> &x, const std::vector<float>
     float weight_gradient = 0.0f;
     float bias_gradient = 0.0f;
     float mse = 0.0f;
-    for (size_t i = 0; i < x.size(); ++i) {
-      float prediction = weight_ * x[i] + bias_;
-      float error = prediction - y[i];
-      weight_gradient += error * x[i];
+    for (size_t i = 0; i < pts.size(); ++i) {
+      float prediction = weight_ * pts[i].x + bias_;
+      float error = prediction - pts[i].y;
+      weight_gradient += error * pts[i].x;
       bias_gradient += error;
       mse += error * error;
     }
-    weight_ -= learning_rate_ * (weight_gradient / x.size());
-    bias_ -= learning_rate_ * (bias_gradient / x.size());
-    mse /= x.size();
+    weight_ -= learning_rate_ * (weight_gradient / pts.size());
+    bias_ -= learning_rate_ * (bias_gradient / pts.size());
+    if (stepf_ && !stepf_()) {
+      break;
+    }
+    mse /= pts.size();
     if (std::fabs(last_mse - mse) < 1e-6f) {
       std::cout << "LinearRegression - Early stopping at epoch " << epoch << " with MSE: " << mse << '\n';
       break;

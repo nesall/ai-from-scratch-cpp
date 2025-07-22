@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(AIFromScratchCPP)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Main executable
 add_executable(ai_main
+    include/common.hpp
+    include/datasynth.hpp
     include/models/linear_regression.hpp
     src/main.cpp
     src/models/linear_regression.cpp
