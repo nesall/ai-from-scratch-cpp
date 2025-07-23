@@ -6,20 +6,22 @@ This repository contains pure C++ implementations of popular AI and machine lear
 
 
 
-\## Weekly Progress
+\- ✅ Week 1: Linear Regression - MSE, gradient descent, regression
 
-\- ✅ Week 1: Linear Regression
+\- ✅ Week 2: Logistic Regression - Sigmoid, classification, cross-entropy
 
-\- ✅ Week 2: Logistic Regression
+\- ✅ Week 3: K-Nearest Neighbors - Lazy learning, distance metrics, voting
 
-\- ✅ Week 3: K-Nearest Neighbors
+\- ✅ Week 4: Naive Bayes - Probabilistic modeling, Gaussian likelihood
+
+\- ✅ Week 5: Decision Trees - 
 
 
 ...
 
-```
-#Build instructions.
 
+#Build instructions.
+```
 mkdir build
 cd build
 
