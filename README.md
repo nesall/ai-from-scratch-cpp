@@ -17,5 +17,15 @@ This repository contains pure C++ implementations of popular AI and machine lear
 
 ...
 
+```
+#Build instructions.
 
+mkdir build
+cd build
+
+cmake ...
+
+make
+
+```
 

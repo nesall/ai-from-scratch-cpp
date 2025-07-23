@@ -11,10 +11,12 @@ add_executable(ai_main
     include/models/linear_regression.hpp
     include/models/logistic_regression.hpp
     include/models/knearest_neighbors.hpp
+    include/models/naivebayes_classifier.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp
     src/models/knearest_neighbors.cpp
+    src/models/naivebayes_classifier.cpp
 )
 
 # Include headers
