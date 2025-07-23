@@ -5,6 +5,7 @@ extern void test_logistic_regression();
 extern void test_knn_classification();
 extern void test_naivebayes_classification();
 extern void test_decision_tree();
+extern void test_random_forest();
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -14,6 +15,7 @@ int main() {
   test_knn_classification();
   test_naivebayes_classification();
   test_decision_tree();
+  test_random_forest();
 
   return 0;
 }

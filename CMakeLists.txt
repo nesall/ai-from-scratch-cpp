@@ -13,12 +13,14 @@ add_executable(ai_main
     include/models/knearest_neighbors.hpp
     include/models/naivebayes_classifier.hpp
     include/models/decision_tree.hpp
+    include/models/random_forest.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp
     src/models/knearest_neighbors.cpp
     src/models/naivebayes_classifier.cpp
-    src/models/decision_tree.cpp
+    src/models/decision_tree.cpp 
+    src/models/random_forest.cpp 
 )
 
 # Include headers
