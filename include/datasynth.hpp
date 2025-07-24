@@ -6,6 +6,11 @@
 #include <random>
 
 
+inline bool nearly_equal(float a, float b, float epsilon = 1e-2f) {
+  return std::fabs(a - b) < epsilon;
+}
+
+
 /**
  * Generates synthetic linear regression data: y = w*x + b + noise
  * @param pts Output vector for generated points

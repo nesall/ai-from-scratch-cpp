@@ -14,7 +14,9 @@ This repository contains pure C++ implementations of popular AI and machine lear
 
 \- ✅ Week 4: Naive Bayes - Probabilistic modeling, Gaussian likelihood
 
-\- ✅ Week 5: Decision Trees - 
+\- ✅ Week 5: Decision Trees - Entropy, information gain, tree structure 
+
+\- ✅ Week 6: Random Forest - Bootstrapping, bagging, ensembles
 
 
 ...
