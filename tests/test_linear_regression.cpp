@@ -4,12 +4,6 @@
 #include "models/linear_regression.hpp"
 #include "datasynth.hpp"
 
-constexpr float EPSILON = 0.2f; // Acceptable error margin for predictions
-
-bool approximately_equal(float a, float b, float eps = EPSILON) {
-  return std::fabs(a - b) <= eps;
-}
-
 void test_linear_regression() {
   std::vector<commons::Pointf> pts;
   const int num_samples = 100;
@@ -29,7 +23,7 @@ void test_linear_regression() {
   for (size_t i = 0; i < test_x.size(); ++i) {
     float pred = predicted_y[i];
     float expect = expected_y[i];
-    bool pass = approximately_equal(pred, expect);
+    bool pass = nearly_equal(pred, expect);
 
     //std::cout << "x = " << test_x[i] << ", predicted y = " << pred << ", expected y = " << expect << "\n";
     std::cout << "[LinearRegression] " << (pass ? "PASSED" : "FAILED") << '\n';
