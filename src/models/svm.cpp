@@ -10,11 +10,6 @@ models::SupportVectorMachine::SupportVectorMachine(float lr, int epochs, float C
 
 void models::SupportVectorMachine::fit(const std::vector<std::vector<float>> &train_x, const std::vector<int> &train_y)
 {
-  // Decision boundary: w·x + b = 0
-  // For all samples: yᵢ(w·xᵢ + b) ≥ 1
-  // Loss = 0.5 * ||w||² + C * sum(max(0, 1 - yᵢ(w·xᵢ + b)))
-  // Convex QP problem : minimize `(1 / 2)
-
   // This is a simplified version of the SVM training process.
   // In practice, you would use a library like libsvm or scikit-learn for efficient SVM training.
   // Here we will just initialize the model parameters.
@@ -61,7 +56,6 @@ void models::SupportVectorMachine::fit(const std::vector<std::vector<float>> &tr
 int models::SupportVectorMachine::predict(const std::vector<float> &x) const
 {
   assert(x.size() == weights_.size());
-  // Calculate the dot product of weights and input vector
   float dot_product = 0.0f;
   for (size_t i = 0; i < weights_.size(); ++i) {
     dot_product += weights_[i] * x[i];
