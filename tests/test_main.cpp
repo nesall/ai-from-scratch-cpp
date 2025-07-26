@@ -8,6 +8,7 @@ extern void test_decision_tree();
 extern void test_random_forest();
 extern void test_svm();
 extern void test_matrix();
+extern void test_perceptron();
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -20,6 +21,7 @@ int main() {
   test_random_forest();
   test_svm();
   test_matrix();
+  test_perceptron();
 
   return 0;
 }
