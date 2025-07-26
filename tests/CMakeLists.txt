@@ -8,6 +8,7 @@ add_executable(ai_tests
     test_random_forest.cpp
     test_svm.cpp
     test_matrix.cpp
+    test_perceptron.cpp
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp
@@ -16,6 +17,7 @@ add_executable(ai_tests
     ../src/models/random_forest.cpp
     ../src/models/svm.cpp
     ../src/matrix.cpp
+    ../src/models/perceptron.cpp
 
 )
 

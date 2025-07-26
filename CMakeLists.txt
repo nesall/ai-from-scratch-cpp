@@ -16,6 +16,7 @@ add_executable(ai_main
     include/models/random_forest.hpp
     include/models/svm.hpp
     include/matrix.hpp
+    include/models/perceptron.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp
@@ -25,6 +26,7 @@ add_executable(ai_main
     src/models/random_forest.cpp 
     src/models/svm.cpp 
     src/matrix.cpp 
+    src/models/perceptron.cpp 
 )
 
 # Include headers
