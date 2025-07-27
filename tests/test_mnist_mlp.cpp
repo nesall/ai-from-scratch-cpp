@@ -1,9 +1,8 @@
+#include "models/mlp.hpp"
+#include "common.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <iomanip>
-//#include "../src/utils/mnist_loader.h"
-#include "models/mlp.hpp"
 
 bool loadMNISTCSV(const std::string &filename,
   std::vector<std::vector<float>> &X,
@@ -70,13 +69,13 @@ void test_mnist_mlp() {
   std::vector<std::vector<float>> X_train, X_test;
   std::vector<int> y_test;
 
-  if (!loadMNISTCSV("../../tests/mnist_train.csv", X_train, train_labels, 5000)) { // Use subset for faster training
+  if (!loadMNISTCSV(utils::userDir() + "/workspace/misc/data/mnist_train.csv", X_train, train_labels, 5000)) { // Use subset for faster training
     std::cout << "Error loading training data. Please download MNIST CSV files." << std::endl;
     std::cout << "You can get them from: https://www.kaggle.com/datasets/oddrationale/mnist-in-csv" << std::endl;
     return;
   }
 
-  if (!loadMNISTCSV("../../tests/mnist_test.csv", X_test, test_labels, 1000)) { // Use subset for faster testing
+  if (!loadMNISTCSV(utils::userDir() + "/workspace/misc/data/mnist_test.csv", X_test, test_labels, 1000)) { // Use subset for faster testing
     std::cout << "Error loading test data." << std::endl;
     return;
   }
@@ -87,7 +86,7 @@ void test_mnist_mlp() {
   }
 
   models::MLP mlp({ 784, 128, 64, 10 }, 0.01f, models::MLP::Initialization::RandomUniform);
-  mlp.fit(X_train, y_train, 20, models::MLP::ActivationF::Sigmoid);
+  mlp.fit(X_train, y_train, 20, models::MLP::ActivationF::Softmax);
 
   float accuracy = evaluate_accuracy(mlp, X_test, test_labels);
   std::cout << "Test Accuracy: " << accuracy * 100.0f << "%\n";

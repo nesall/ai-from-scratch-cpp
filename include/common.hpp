@@ -2,6 +2,9 @@
 
 #include <functional>
 #include <vector>
+#include <filesystem>
+#include <string>
+
 
 namespace utils {
 
@@ -22,6 +25,15 @@ namespace utils {
     bool operator==(const Point &other) const = default;
   };
   using Pointf = Point<float>;
+
+  inline std::string userDir() {
+#ifdef _WIN32
+    auto userDir = std::filesystem::path(std::getenv("USERPROFILE"));
+#else
+    auto userDir = std::filesystem::path(std::getenv("HOME")); // Linux/Mac
+#endif
+    return userDir.string();
+  }
 
 
 
