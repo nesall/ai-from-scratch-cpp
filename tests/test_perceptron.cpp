@@ -4,8 +4,8 @@
 void test_gate(const std::string &gate_name, const std::vector<std::vector<float>> &inputs,
   const std::vector<int> &targets) {
   int expected_accuracy = targets.size();
-  models::Perceptron p(2, 0.1f, 20); // 2-input perceptron
-  p.fit(inputs, targets);
+  models::Perceptron p(2, 0.1f); // 2-input perceptron
+  p.fit(inputs, targets, 20);
 
   int correct = 0;
   for (size_t i = 0; i < inputs.size(); ++i) {
@@ -29,6 +29,6 @@ void test_perceptron() {
   std::vector<int> y_and = { 0, 0, 0, 1 };
   std::vector<int> y_or = { 0, 1, 1, 1 };
 
-  test_gate("AND Gate", X, y_and);
-  test_gate("OR Gate", X, y_or);
+  test_gate("AND gate", X, y_and);
+  test_gate("OR gate", X, y_or);
 }

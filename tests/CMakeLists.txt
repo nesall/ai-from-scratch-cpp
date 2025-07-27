@@ -9,6 +9,7 @@ add_executable(ai_tests
     test_svm.cpp
     test_matrix.cpp
     test_perceptron.cpp
+    test_mlp.cpp
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp
@@ -18,6 +19,7 @@ add_executable(ai_tests
     ../src/models/svm.cpp
     ../src/matrix.cpp
     ../src/models/perceptron.cpp
+    ../src/models/mlp.cpp
 
 )
 

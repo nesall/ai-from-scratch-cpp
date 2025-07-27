@@ -22,4 +22,19 @@ namespace commons {
   };
   using Pointf = Point<float>;
 
+    
+  inline float sigmoid(float x) {
+    return 1.0f / (1.0f + std::exp(-x));
+  }
+
+  // Sigmoid derivative: s'(x) = s(x) * (1 - s(x))
+  inline float sigmoidDerivative(float x) {
+    float s = /*sigmoid*/(x);
+    return s * (1 - s);
+  }
+
+  inline float relu(float x) { return x > 0 ? x : 0; }
+
+  inline float reluDerivative(float x) { return x > 0 ? 1 : 0; }
+
 }

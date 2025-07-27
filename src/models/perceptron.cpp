@@ -2,11 +2,10 @@
 #include <cassert>
 #include <random>
 
-models::Perceptron::Perceptron(size_t inputs, float lr, size_t e)
+models::Perceptron::Perceptron(size_t inputs, float lr)
 {
   nofInputs_ = inputs;
   learningRate_ = lr;
-  epochs_ = e;
   weights_.resize(nofInputs_ + 1, 0); // +1 for bias
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -16,11 +15,11 @@ models::Perceptron::Perceptron(size_t inputs, float lr, size_t e)
   }
 }
 
-void models::Perceptron::fit(const std::vector<std::vector<float>> &X, const std::vector<int> &y)
+void models::Perceptron::fit(const std::vector<std::vector<float>> &X, const std::vector<int> &y, size_t epochs)
 {
   assert(X.size() == y.size() && "Input and target sizes must match.");
   assert(X[0].size() == nofInputs_ && "Input size must match the number of inputs.");
-  for (size_t epoch = 0; epoch < epochs_; ++epoch) {
+  for (size_t epoch = 0; epoch < epochs; ++epoch) {
     for (size_t i = 0; i < X.size(); ++i) {
       float net_input = weights_[0]; // bias
       for (size_t j = 0; j < nofInputs_; ++j) {
