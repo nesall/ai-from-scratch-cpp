@@ -74,5 +74,5 @@ void test_matrix() {
   std::cout << "[Matrix] Subtraction:             " << (test_subtraction() ? "PASSED" : "FAILED") << std::endl;
   std::cout << "[Matrix] Scalar Multiplication:   " << (test_scalar_multiplication() ? "PASSED" : "FAILED") << std::endl;
   std::cout << "[Matrix] Matrix Multiplication:   " << (test_matrix_multiplication() ? "PASSED" : "FAILED") << std::endl;
-  std::cout << "[Matrix] Transpose:               " << (test_transpose() ? "PASSED" : "FAILED") << std::endl;
+  std::cout << "[Matrix] Transpose:               " << (test_transpose() ? "PASSED" : "FAILED") << "\n";
 }

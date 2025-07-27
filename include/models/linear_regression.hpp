@@ -3,7 +3,7 @@
 
 namespace models {
 
-  class LinearRegression : public commons::StepBreaker {
+  class LinearRegression : public utils::StepBreaker {
   private:
     float weight_ = 0;
     float bias_ = 0;
@@ -13,7 +13,7 @@ namespace models {
   public:
     LinearRegression(float lr = 0.01f, int ep = 1000);
 
-    void fit(const std::vector<commons::Pointf> &pts);
+    void fit(const std::vector<utils::Pointf> &pts);
     float predict(float x);
     std::vector<float> predict(const std::vector<float> &x_vals);
   };

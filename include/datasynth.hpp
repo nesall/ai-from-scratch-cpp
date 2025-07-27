@@ -23,7 +23,7 @@ inline bool nearly_equal(float a, float b, float epsilon = 1e-2f) {
  * @param seed Random seed for reproducible results
  */
 template<typename T>
-void generate_synthetic_data(std::vector<commons::Point<T>> &pts,
+void generate_synthetic_data(std::vector<utils::Point<T>> &pts,
   int num_points,
   T true_w,
   T true_b,
@@ -58,7 +58,7 @@ void generate_synthetic_data(std::vector<commons::Point<T>> &pts,
 }
 
 template<typename T>
-std::vector<commons::Point<T>> generate_synthetic_data(int num_points,
+std::vector<utils::Point<T>> generate_synthetic_data(int num_points,
   T true_w,
   T true_b,
   T rangeMin = static_cast<T>(0),
@@ -66,7 +66,7 @@ std::vector<commons::Point<T>> generate_synthetic_data(int num_points,
   T noise_std = static_cast<T>(1),
   unsigned int seed = 42) {
 
-  std::vector<commons::Point<T>> pts;
+  std::vector<utils::Point<T>> pts;
   generate_synthetic_data(pts, num_points, true_w, true_b, rangeMin, rangeMax, noise_std, seed);
   return pts;
 }

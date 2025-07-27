@@ -16,7 +16,7 @@ LinearRegression::LinearRegression(float lr, int ep)
   }
 }
 
-void LinearRegression::fit(const std::vector<commons::Pointf> &pts)
+void LinearRegression::fit(const std::vector<utils::Pointf> &pts)
 {
   if (pts.empty()) {
     throw std::invalid_argument("Input vector must be non-zero length.");

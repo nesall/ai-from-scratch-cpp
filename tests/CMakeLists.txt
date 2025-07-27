@@ -10,6 +10,7 @@ add_executable(ai_tests
     test_matrix.cpp
     test_perceptron.cpp
     test_mlp.cpp
+    test_mnist_mlp.cpp
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp

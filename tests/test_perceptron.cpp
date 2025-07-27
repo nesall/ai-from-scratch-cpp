@@ -15,7 +15,7 @@ void test_gate(const std::string &gate_name, const std::vector<std::vector<float
     }
   }
   std::cout << "[Perceptron] ";
-  std::cout << gate_name << ": " << (correct >= expected_accuracy ? "PASSED" : "FAILED") << std::endl;
+  std::cout << gate_name << ": " << (correct >= expected_accuracy ? "PASSED" : "FAILED") << "\n";
 }
 
 void test_perceptron() {

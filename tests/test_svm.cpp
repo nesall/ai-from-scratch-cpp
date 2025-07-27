@@ -33,8 +33,8 @@ void test_svm() {
   }
 
   if (passed) {
-    std::cout << "[SupportVectorMachine] PASSED" << std::endl;
+    std::cout << "[SupportVectorMachine] PASSED\n";
   } else {
-    std::cout << "[SupportVectorMachine] FAILED" << std::endl;
+    std::cout << "[SupportVectorMachine] FAILED\n";
   }
 }

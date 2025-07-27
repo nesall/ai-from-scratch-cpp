@@ -3,6 +3,20 @@
 namespace models {
 
   class MLP {
+  public:
+    enum class ActivationF {
+      Sigmoid,
+      ReLU,
+      Softmax
+    };
+
+    enum class Initialization {
+      RandomUniform,
+      Xavier,
+      He
+    };
+
+  private:
     float learningRate_ = 0;
     std::vector<size_t> layerSizes_;
 
@@ -14,10 +28,13 @@ namespace models {
     };
 
     std::vector<Layer> layers_;
+    ActivationF af_ = ActivationF::Sigmoid;
+
+    //size_t numThreads_ = 1;
 
   public:
-    MLP(const std::vector<size_t> &layers, float learning_rate);
-    void fit(const std::vector<std::vector<float>> &X, const std::vector<std::vector<float>> &y, size_t epochs);
+    MLP(const std::vector<size_t> &layers, float learning_rate, Initialization ini = Initialization::RandomUniform);
+    void fit(const std::vector<std::vector<float>> &X, const std::vector<std::vector<float>> &y, size_t epochs, ActivationF af = ActivationF::Sigmoid);
     std::vector<float> predict(const std::vector<float> &x);
 
   private:
