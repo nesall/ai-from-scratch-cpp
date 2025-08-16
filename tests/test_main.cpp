@@ -37,7 +37,7 @@ int main() {
   run(test_matrix);
   run(test_perceptron);
   run(test_mlp);
-  //run(test_mnist_mlp);
+  run(test_mnist_mlp);
   run(test_conv);
   run(test_cnn);
 

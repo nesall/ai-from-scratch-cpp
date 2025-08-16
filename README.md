@@ -32,7 +32,7 @@
 
 - 📘 Theory Markdown (`weekX_<topic>.md`)
 - 💻 C++ Implementation:
-  - `src/<topic>/<topic>.hpp/.cpp`
+  - `src/models/<topic>.hpp/.cpp`
   - `tests/test_<topic>.cpp` with PASSED/FAILED outputs
 - 🚫 No external dependencies or frameworks
 - 🧠 Emphasis on intuition, clarity, and systems-level understanding

@@ -1,6 +1,7 @@
 #include "models/cnn.hpp"
 #include "matrix.hpp"
-#include <stdexcept>
+#include <iterator>
+#include <algorithm>
 #include <cassert>
 
 using namespace models;
@@ -34,7 +35,8 @@ using namespace models;
 
 Conv2D::Conv2D(int out_channels, int in_channels, int kernel_size, int stride, int padding)
   : out_channels_(out_channels), in_channels_(in_channels),
-  kernel_size_(kernel_size), stride_(stride), padding_(padding) {
+  kernel_size_(kernel_size), stride_(stride), padding_(padding)
+{
 }
 
 void Conv2D::setWeights(const std::vector<std::vector<std::vector<std::vector<float>>>> &weights)
@@ -47,8 +49,6 @@ void Conv2D::setWeights(const std::vector<std::vector<std::vector<std::vector<fl
 
 std::vector<std::vector<std::vector<float>>> Conv2D::forward(const std::vector<std::vector<std::vector<float>>> &input)
 {
-  // To be implemented by you
-
   // Input format: [in_channels][height][width]
   // Weights format: [out_channels][in_channels][kernel_height][kernel_width]
   // Output format: [out_channels][output_height][output_width]
@@ -59,10 +59,8 @@ std::vector<std::vector<std::vector<float>>> Conv2D::forward(const std::vector<s
   const int input_height = static_cast<int>(input[0].size());
   const int input_width = static_cast<int>(input[0][0].size());
 
-  // Validate input channels match expected
   assert(input_channels == in_channels_);
 
-  // Calculate output dimensions
   const int output_height = (input_height - kernel_size_ + 2 * padding_) / stride_ + 1;
   const int output_width = (input_width - kernel_size_ + 2 * padding_) / stride_ + 1;
 
@@ -81,23 +79,18 @@ std::vector<std::vector<std::vector<float>>> Conv2D::forward(const std::vector<s
   for (int out_ch = 0; out_ch < out_channels_; ++out_ch) {
     // For each output channel, convolve with all input channels and sum
     for (int in_ch = 0; in_ch < in_channels_; ++in_ch) {
-      // Convert input channel to Matrix format for utils::convolve2D
       Matrix<float> input_matrix(input_height, input_width);
       for (int h = 0; h < input_height; ++h) {
         for (int w = 0; w < input_width; ++w) {
           input_matrix(h, w) = input[in_ch][h][w];
         }
       }
-
-      // Convert kernel to Matrix format
       Matrix<float> kernel_matrix(kernel_size_, kernel_size_);
       for (int kh = 0; kh < kernel_size_; ++kh) {
         for (int kw = 0; kw < kernel_size_; ++kw) {
           kernel_matrix(kh, kw) = weights_[out_ch][in_ch][kh][kw];
         }
       }
-
-      // Perform 2D convolution using utils::convolve2D
       std::vector<float> conv_result = utils::convolve2D(input_matrix, kernel_matrix, stride_, padding_);
 
       // Add convolution result to output channel (accumulate across input channels)
@@ -110,8 +103,6 @@ std::vector<std::vector<std::vector<float>>> Conv2D::forward(const std::vector<s
   }
 
   return output;
-
-  return {};
 }
 
 
@@ -133,7 +124,6 @@ std::vector<std::vector<std::vector<float>>> MaxPool2D::forward(const std::vecto
   const int input_height = static_cast<int>(input[0].size());
   const int input_width = static_cast<int>(input[0][0].size());
 
-  // Calculate output dimensions
   const int output_height = (input_height - pool_size_) / stride_ + 1;
   const int output_width = (input_width - pool_size_) / stride_ + 1;
 
@@ -147,12 +137,10 @@ std::vector<std::vector<std::vector<float>>> MaxPool2D::forward(const std::vecto
       output[c][h].resize(output_width);
     }
   }
-
   // Perform max pooling for each channel independently
   for (int c = 0; c < channels; ++c) {
     for (int out_h = 0; out_h < output_height; ++out_h) {
       for (int out_w = 0; out_w < output_width; ++out_w) {
-        // Calculate the pooling window boundaries
         int start_h = out_h * stride_;
         int start_w = out_w * stride_;
         int end_h = start_h + pool_size_;
@@ -167,12 +155,10 @@ std::vector<std::vector<std::vector<float>>> MaxPool2D::forward(const std::vecto
             }
           }
         }
-
         output[c][out_h][out_w] = max_val;
       }
     }
   }
-
   return output;
 }
 
@@ -187,75 +173,42 @@ models::CNN::CNN(int in_channels, const std::vector<size_t> &layers, float learn
 std::vector<float> CNN::forward(const std::vector<std::vector<std::vector<float>>> &input)
 {
   // Input format: [channels][height][width]
-
   assert(!input.empty());
-
-  // Validate input channels
   assert(static_cast<int>(input.size()) == in_channels_);
-
-  // Start with the input
   auto current_data = input;
-
-  // Process through conv and pool layers
-  // Assumption: conv_layers_ and pool_layers_ have the same size and are paired
-  // i.e., conv_layers_[i] is followed by pool_layers_[i]
+  assert(pool_layers_.size() <= conv_layers_.size() && "Pool layers must not exceed conv layers");
   for (size_t i = 0; i < conv_layers_.size() && i < pool_layers_.size(); ++i) {
-    // Apply convolution
     current_data = conv_layers_[i].forward(current_data);
-
-    // Apply max pooling
     current_data = pool_layers_[i].forward(current_data);
   }
-
   // Handle case where there are more conv layers than pool layers
   for (size_t i = pool_layers_.size(); i < conv_layers_.size(); ++i) {
     current_data = conv_layers_[i].forward(current_data);
   }
-
-  // Flatten the final feature maps for MLP input
   std::vector<float> flattened = flatten(current_data);
-
-  // Pass through MLP for final prediction
   return mlp_.predict(flattened);
 }
 
-int CNN::predict_class(const std::vector<std::vector<std::vector<float>>> &input) {
+int CNN::predict_class(const std::vector<std::vector<std::vector<float>>> &input)
+{
   std::vector<float> output = forward(input);
-
   assert(!output.empty());
-
-  // Find the index of the maximum value (argmax)
-  int predicted_class = 0;
-  float max_value = output[0];
-
-  for (size_t i = 1; i < output.size(); ++i) {
-    if (output[i] > max_value) {
-      max_value = output[i];
-      predicted_class = static_cast<int>(i);
-    }
-  }
-
-  return predicted_class;
+  return static_cast<int>(std::distance(output.cbegin(), std::max_element(output.cbegin(), output.cend())));
 }
 
-std::vector<float> CNN::flatten(const std::vector<std::vector<std::vector<float>>> &input) {
+std::vector<float> CNN::flatten(const std::vector<std::vector<std::vector<float>>> &input)
+{
   if (input.empty()) {
     return {};
   }
-
   std::vector<float> flattened;
-
-  // Calculate total size needed
   size_t total_size = 0;
   for (const auto &channel : input) {
     for (const auto &row : channel) {
       total_size += row.size();
     }
   }
-
-  // Reserve space for efficiency
   flattened.reserve(total_size);
-
   // Flatten in order: [channel][height][width]
   for (const auto &channel : input) {
     for (const auto &row : channel) {
@@ -264,14 +217,12 @@ std::vector<float> CNN::flatten(const std::vector<std::vector<std::vector<float>
       }
     }
   }
-
   return flattened;
 }
 
 void models::CNN::add_conv_layer(int out_channels, int kernel_size, int stride, int padding)
 {
   conv_layers_.push_back(Conv2D(out_channels, current_channels_, kernel_size, stride, padding));
-
   // Update for the next layer (conv layers change the number of channels)
   current_channels_ = out_channels;
 }
@@ -281,11 +232,7 @@ void models::CNN::add_pool_layer(int pool_size, int stride)
   if (stride == -1) {
     stride = pool_size;
   }
-
-  // Max pooling doesn't change the number of channels, only spatial dimensions
   pool_layers_.emplace_back(pool_size, stride);
-
-  // current_channels_ stays the same after pooling
 }
 
 void models::CNN::set_conv_weights(size_t layer_index, const std::vector<std::vector<std::vector<std::vector<float>>>> &weights)
@@ -294,11 +241,13 @@ void models::CNN::set_conv_weights(size_t layer_index, const std::vector<std::ve
   conv_layers_[layer_index].setWeights(weights);
 }
 
-std::vector<float> CNN::extract_features(const std::vector<std::vector<std::vector<float>>> &input) {
+std::vector<float> CNN::extract_features(const std::vector<std::vector<std::vector<float>>> &input)
+{
   assert(!input.empty());
   assert(static_cast<int>(input.size()) == in_channels_);
   // Same as forward() but stop before MLP
   auto current_data = input;
+  assert(pool_layers_.size() <= conv_layers_.size() && "Pool layers must not exceed conv layers");
   for (size_t i = 0; i < conv_layers_.size() && i < pool_layers_.size(); ++i) {
     current_data = conv_layers_[i].forward(current_data);
     current_data = pool_layers_[i].forward(current_data);
