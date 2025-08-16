@@ -18,6 +18,7 @@ add_executable(ai_main
     include/matrix.hpp
     include/models/perceptron.hpp
     include/models/mlp.hpp
+    include/models/cnn.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp
@@ -29,6 +30,7 @@ add_executable(ai_main
     src/matrix.cpp 
     src/models/perceptron.cpp 
     src/models/mlp.cpp 
+    src/models/cnn.cpp 
 )
 
 # Include headers

@@ -140,4 +140,54 @@ const std::vector<int> expected_1D_4C = {
 3, 3, 3
 };
 
+
+// NxN grayscale images with different patterns for training a CNN
+template <int N = 32>
+inline void generate_grayscale_images(std::vector<std::vector<std::vector<std::vector<float>>>> &images,
+  std::vector<int> &labels,
+  int num_samples = 100) {
+  images.clear();
+  labels.clear();
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> noise(0.0f, 0.1f);
+
+  for (int i = 0; i < num_samples; ++i) {
+    // Create NxN grayscale images with different patterns
+    std::vector<std::vector<std::vector<float>>> image(1);
+    image[0].resize(N);
+    for (int y = 0; y < N; ++y) {
+      image[0][y].resize(N);
+    }
+
+    int label = i % 3; // 3 classes
+    labels.push_back(label);
+
+    // Generate different patterns for each class
+    for (int y = 0; y < N; ++y) {
+      for (int x = 0; x < N; ++x) {
+        float value = 0.0f;
+
+        switch (label) {
+        case 0: // Horizontal stripes
+          value = (y / 4) % 2 == 0 ? 0.8f : 0.2f;
+          break;
+        case 1: // Vertical stripes  
+          value = (x / 4) % 2 == 0 ? 0.8f : 0.2f;
+          break;
+        case 2: // Checkerboard
+          value = ((x / 4) + (y / 4)) % 2 == 0 ? 0.8f : 0.2f;
+          break;
+        }
+
+        // Add noise
+        image[0][y][x] = std::max(0.0f, std::min(1.0f, value + noise(gen)));
+      }
+    }
+
+    images.push_back(image);
+  }
+}
+
 #endif // TRAINING_DATA_1D_FOUR_CLASS_H

@@ -24,6 +24,7 @@ add_executable(ai_visualizer
     plotter.hpp
     plotter.cpp
     vis_linear_regression.cpp
+    vis_convolution.cpp
     ../src/models/linear_regression.cpp
 )
 

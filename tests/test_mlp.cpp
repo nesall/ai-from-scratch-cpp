@@ -29,6 +29,49 @@ bool test_xor() {
   return passed;
 }
 
+void test_simple2d() {
+  // Create simple 2D classification problem
+  std::vector<std::vector<float>> X = {
+      {0.1, 0.1}, {0.1, 0.9}, {0.9, 0.1}, {0.9, 0.9},
+      {0.2, 0.2}, {0.2, 0.8}, {0.8, 0.2}, {0.8, 0.8},
+      {0.3, 0.1}, {0.1, 0.7}, {0.7, 0.3}, {0.9, 0.7}
+  };
+
+  std::vector<std::vector<float>> y = {
+      {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0},  // Classes based on position
+      {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0},
+      {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}
+  };
+
+  models::MLP mlp({ 2, 10, 3 }, 0.1f, models::MLP::Initialization::Xavier);
+
+  mlp.fit(X, y, 100, models::MLP::ActivationF::Softmax);
+
+  int nofCorrect = 0;
+
+  for (size_t i = 0; i < X.size(); ++i) {
+    auto output = mlp.predict(X[i]);
+    int predicted = 0;
+    for (size_t j = 1; j < output.size(); ++j) {
+      if (output[j] > output[predicted]) predicted = j;
+    }
+
+    int actual = 0;
+    for (size_t j = 0; j < y[i].size(); ++j) {
+      if (y[i][j] == 1.0f) actual = j;
+    }
+
+    if (predicted == actual) {
+      nofCorrect++;
+    }
+
+    //std::cout << "Sample " << i << ": Pred=" << predicted << ", Actual=" << actual << std::endl;
+  }
+  const auto percent = (100 * nofCorrect / X.size());
+  std::cout << "[MLP] Simple 2D classification: " << (75 < percent ? "PASSED" : "FAILED") << " (" << percent << "% correct)\n";
+}
+
 void test_mlp() {
   test_xor();
+  test_simple2d();
 }

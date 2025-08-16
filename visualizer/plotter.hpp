@@ -1,7 +1,9 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <cmath>
+#include <iostream>
 #include <algorithm>
+#include <thread>
+#include <filesystem>
 
 
 struct DrawContext {
@@ -74,6 +76,10 @@ class SimplePlotter : public DrawContext {
   float dataBoundsMinY = 0.f;
   float dataBoundsMaxY = 10.f;
 
+  bool drawAxes_ = true;
+  sf::Texture bgTexture_;
+  //sf::Sprite bgSprite_;
+
 public:
   SimplePlotter(int width = 800, int height = 600)
     : window(sf::VideoMode(width, height), "Fitting Algorithm Visualizer") {
@@ -126,7 +132,14 @@ public:
 
     window.clear(backgroundColor);
 
-    drawAxes(plotWidth, plotHeight);
+    sf::Sprite sprite(bgTexture_);
+    if (sprite.getTexture()) {
+      sprite.setPosition(margin, margin);
+      window.draw(sprite);
+    }
+
+    if (drawAxes_)
+      drawAxes(plotWidth, plotHeight);
 
     for (const auto &shape : shapes) {
       shape->draw(*this);
@@ -135,9 +148,38 @@ public:
     window.display();
   }
 
+  void setDrawAxes(bool f) {
+    drawAxes_ = f;
+  }
+
+  void setDrawImage(const std::string &path) {
+    if (path.empty()) {
+      std::cout << "No image path provided." << std::endl;
+      return; // No image to draw
+    }
+    if (!std::filesystem::exists(path)) {
+      std::cout << "File path " << std::filesystem::absolute(path) << " does not exist." << std::endl;
+      return;
+    }
+
+    if (bgTexture_.loadFromFile(path)) {
+      window.setSize(sf::Vector2u(bgTexture_.getSize().x + 2 * margin, bgTexture_.getSize().y + 2 * margin));
+      // After resizing, set the view to match the drawable area:
+      sf::View view(sf::FloatRect(0, 0, bgTexture_.getSize().x + 2 * margin, bgTexture_.getSize().y + 2 * margin));
+      window.setView(view);
+    } else {
+      std::cout << "Unable to load texture." << std::endl;
+      // Handle error loading image
+    }
+  }
+
+  void setDrawImage(const sf::Texture &t) { 
+  }
+
   void start() {
     while (window.isOpen()) {
       drawNextFrame();
+      std::this_thread::sleep_for(std::chrono::milliseconds(16)); // Control the frame rate
     }
   }
 
