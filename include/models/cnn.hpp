@@ -54,7 +54,7 @@ namespace models {
     void train(const std::vector<std::vector<std::vector<std::vector<float>>>> &train_images,
       const std::vector<std::vector<float>> &train_labels,
       size_t epochs = 100,
-      MLP::ActivationF activation = MLP::ActivationF::Softmax);
+      ActivationF activation = ActivationF::Softmax);
 
   private:
     int in_channels_ = 0;

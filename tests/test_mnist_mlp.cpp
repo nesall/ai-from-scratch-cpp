@@ -85,8 +85,8 @@ void test_mnist_mlp() {
     y_train.push_back({ one_hot(label) });
   }
 
-  models::MLP mlp({ 784, 128, 64, 10 }, 0.01f, models::MLP::Initialization::RandomUniform);
-  mlp.fit(X_train, y_train, 15, models::MLP::ActivationF::Sigmoid);
+  models::MLP mlp({ 784, 128, 64, 10 }, 0.01f, models::Initialization::RandomUniform);
+  mlp.fit(X_train, y_train, 15, models::ActivationF::Sigmoid);
 
   float accuracy = evaluate_accuracy(mlp, X_test, test_labels);
   std::cout << "Test Accuracy: " << accuracy * 100.0f << "%\n";

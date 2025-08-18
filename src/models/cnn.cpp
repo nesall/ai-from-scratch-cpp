@@ -259,7 +259,7 @@ std::vector<float> CNN::extract_features(const std::vector<std::vector<std::vect
 }
 
 void CNN::train(const std::vector<std::vector<std::vector<std::vector<float>>>> &train_images,
-  const std::vector<std::vector<float>> &train_labels, size_t epochs, MLP::ActivationF activation)
+  const std::vector<std::vector<float>> &train_labels, size_t epochs, ActivationF activation)
 {
   assert(train_images.size() == train_labels.size());
   assert(!train_images.empty());

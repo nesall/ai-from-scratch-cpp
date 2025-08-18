@@ -244,7 +244,7 @@ void test_cnn_image_data() {
 
   // TRAIN THE CNN
   //std::cout << "\n--- TRAINING PHASE ---" << std::endl;
-  cnn.train(train_images, train_labels, 100, models::MLP::ActivationF::Softmax);
+  cnn.train(train_images, train_labels, 100, models::ActivationF::Softmax);
 
 
   // Test on several images

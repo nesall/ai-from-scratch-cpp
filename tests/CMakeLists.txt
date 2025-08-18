@@ -13,6 +13,7 @@ add_executable(ai_tests
     test_mnist_mlp.cpp
     test_cnn.cpp
     test_conv.cpp
+    test_rnn.cpp
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp
@@ -24,6 +25,7 @@ add_executable(ai_tests
     ../src/models/perceptron.cpp
     ../src/models/mlp.cpp
     ../src/models/cnn.cpp
+    ../src/models/rnn.cpp
 
 )
 

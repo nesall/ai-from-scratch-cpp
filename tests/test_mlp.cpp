@@ -43,9 +43,9 @@ void test_simple2d() {
       {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}
   };
 
-  models::MLP mlp({ 2, 10, 3 }, 0.1f, models::MLP::Initialization::Xavier);
+  models::MLP mlp({ 2, 10, 3 }, 0.1f, models::Initialization::Xavier);
 
-  mlp.fit(X, y, 100, models::MLP::ActivationF::Softmax);
+  mlp.fit(X, y, 100, models::ActivationF::Softmax);
 
   int nofCorrect = 0;
 

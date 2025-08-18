@@ -1,5 +1,8 @@
 #pragma once
 
+#include "matrix.hpp"
+
+#include <stdexcept>
 #include <functional>
 #include <vector>
 #include <filesystem>
@@ -41,10 +44,10 @@ namespace utils {
     return 1.0f / (1.0f + std::exp(-x));
   }
 
-  // Sigmoid derivative: s'(x) = s(x) * (1 - s(x))
-  inline float sigmoidDerivative(float x) {
-    float s = /*sigmoid*/(x);
-    return s * (1 - s);
+  // Sigmoid derivative: s'(x) = s(x) * (1 - s(x)) 
+  // @param sx - result of sigmoid(x)
+  inline float deriveSigmoid(float sx) {
+    return sx * (1 - sx);
   }
 
   inline float relu(float x) { return x > 0 ? x : 0; }
@@ -53,15 +56,24 @@ namespace utils {
 
   inline std::vector<float> softmax(const std::vector<float> &z) {
     if (z.empty()) return z;
-    std::vector<float> exp_z(z.size());
-    float zmax = *std::max_element(z.cbegin(), z.cend());
+    std::vector<float> result(z.size());
+    // Find max for numerical stability
+    float zmax = *std::max_element(z.begin(), z.end());
     float sum = 0.0f;
     for (size_t i = 0; i < z.size(); ++i) {
-      exp_z[i] = std::exp(z[i] - zmax);
-      sum += exp_z[i];
+      result[i] = std::exp(z[i] - zmax);
+      sum += result[i];
     }
-    for (float &val : exp_z) val /= sum;
-    return exp_z;
+    // Normalize to get probabilities
+    if (sum > 0.0f) {
+      for (float &val : result) {
+        val /= sum;
+      }
+    } else {
+      // Fallback: uniform distribution if all values are -infinity
+      std::fill(result.begin(), result.end(), 1.0f / z.size());
+    }
+    return result;
   }
 
 
@@ -111,4 +123,251 @@ namespace utils {
     return weights;
   }
 
+
+
 } // namespace utils
+
+
+
+namespace models {
+
+  enum class ActivationF {
+    Sigmoid,
+    ReLU,
+    Tanh,
+    Softmax
+  };
+
+  enum class Initialization {
+    RandomUniform,
+    Xavier,
+    He
+  };
+
+  class ActivationFunctions {
+  public:
+    static std::vector<float> apply(const std::vector<float> &x, ActivationF af) {
+      std::vector<float> result(x.size());
+      switch (af) {
+      case ActivationF::Sigmoid:
+        for (size_t i = 0; i < x.size(); ++i) {
+          result[i] = utils::sigmoid(x[i]);
+        }
+        break;
+      case ActivationF::ReLU:
+        for (size_t i = 0; i < x.size(); ++i) {
+          result[i] = utils::relu(x[i]);
+        }
+        break;
+      case ActivationF::Tanh:
+        for (size_t i = 0; i < x.size(); ++i) {
+          result[i] = std::tanh(x[i]);
+        }
+        break;
+      case ActivationF::Softmax:
+        result = utils::softmax(x);
+        break;
+      default:
+        throw std::runtime_error("Unknown activation function");
+      }
+      return result;
+    }
+    static std::vector<float> derivative(const std::vector<float> &x, ActivationF af) {
+      std::vector<float> result(x.size());
+      switch (af) {
+      case ActivationF::Sigmoid:
+        for (size_t i = 0; i < x.size(); ++i) {
+          result[i] = utils::deriveSigmoid(utils::sigmoid(x[i]));
+        }
+        break;
+      case ActivationF::ReLU:
+        for (size_t i = 0; i < x.size(); ++i) {
+          result[i] = x[i] > 0.0f ? 1.0f : 0.0f;
+        }
+        break;
+      case ActivationF::Tanh:
+        for (size_t i = 0; i < x.size(); ++i) {
+          float t = std::tanh(x[i]);
+          result[i] = 1.0f - t * t;
+        }
+        break;
+      case ActivationF::Softmax:
+        // For softmax, derivative depends on which output you're taking derivative w.r.t.
+        // This returns diagonal elements of Jacobian (simplified case)
+      {
+        auto sm = apply(x, ActivationF::Softmax);
+        for (size_t i = 0; i < x.size(); ++i) {
+          result[i] = sm[i] * (1.0f - sm[i]);
+        }
+      }
+      break;
+      default:
+        throw std::runtime_error("Unknown activation function");
+      }
+      return result;
+    }
+    static float apply_single(float x, ActivationF af) {
+      switch (af) {
+      case ActivationF::Sigmoid:
+        return utils::sigmoid(x);
+      case ActivationF::ReLU:
+        return utils::relu(x);
+      case ActivationF::Tanh:
+        return std::tanh(x);
+      case ActivationF::Softmax:
+        throw std::runtime_error("Softmax requires vector input");
+      default:
+        throw std::runtime_error("Unknown activation function");
+      }
+    }
+    static float derivative_single(float x, ActivationF af) {
+      switch (af) {
+      case ActivationF::Sigmoid:
+        return utils::deriveSigmoid(x);
+      case ActivationF::ReLU:
+        return x > 0.0f ? 1.0f : 0.0f;
+      case ActivationF::Tanh: {
+        float t = std::tanh(x);
+        return 1.0f - t * t;
+      }
+      case ActivationF::Softmax:
+        throw std::runtime_error("Softmax derivative requires vector input");
+      default:
+        throw std::runtime_error("Unknown activation function");
+      }
+    }
+  };
+
+  class WeightInitializer {
+  public:
+    static void initialize_matrix(Matrix<float> &weights, int rows, int cols, Initialization method) {
+      weights.resize(rows, cols);
+      switch (method) {
+      case Initialization::RandomUniform:
+      {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(-0.5, 0.5); // Match your MLP
+        for (int j = 0; j < rows; ++j) {
+          for (int k = 0; k < cols; ++k) {
+            weights(j, k) = dis(gen);
+          }
+        }
+      }
+      break;
+      case Initialization::Xavier:
+      {
+        float scale = std::sqrt(2.0f / (cols + rows)); // fan_in + fan_out
+        for (int j = 0; j < rows; ++j) {
+          for (int k = 0; k < cols; ++k) {
+            weights(j, k) = (((float)rand() / RAND_MAX) * 2.0f - 1.0f) * scale;
+          }
+        }
+      }
+      break;
+      case Initialization::He:
+      {
+        float scale = std::sqrt(2.0f / cols); // fan_in only
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<float> dist(0.0f, scale);
+        for (int j = 0; j < rows; ++j) {
+          for (int k = 0; k < cols; ++k) {
+            weights(j, k) = dist(gen);
+          }
+        }
+      }
+      break;
+      default:
+        throw std::runtime_error("Unknown initialization method");
+      }
+    }
+#if 0
+    static void initialize_matrix(std::vector<std::vector<float>> &weights, int rows, int cols, Initialization method) {
+      weights.resize(rows, std::vector<float>(cols));
+      switch (method) {
+      case Initialization::RandomUniform:
+      {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(-0.5, 0.5); // Match your MLP
+        for (auto &weight_row : weights) {
+          for (auto &w : weight_row) {
+            w = dis(gen);
+          }
+        }
+      }
+      break;
+      case Initialization::Xavier:
+      {
+        float scale = std::sqrt(2.0f / (cols + rows)); // fan_in + fan_out
+        for (int j = 0; j < rows; ++j) {
+          for (int k = 0; k < cols; ++k) {
+            weights[j][k] = (((float)rand() / RAND_MAX) * 2.0f - 1.0f) * scale;
+          }
+        }
+      }
+      break;
+      case Initialization::He:
+      {
+        float scale = std::sqrt(2.0f / cols); // fan_in only
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<float> dist(0.0f, scale);
+        for (auto &weight_row : weights) {
+          for (auto &w : weight_row) {
+            w = dist(gen);
+          }
+        }
+      }
+      break;
+      default:
+        throw std::runtime_error("Unknown initialization method");
+      }
+    }
+#endif
+    static void initialize_vector(std::vector<float> &vec, int size, Initialization method) {
+      vec.resize(size);
+      // Biases are always initialized to zero in your MLP implementation
+      std::fill(vec.begin(), vec.end(), 0.0f);
+    }
+
+  private:
+    //static void random_uniform_init(Matrix<float> &mat, float min_val, float max_val) {
+    //  std::random_device rd;
+    //  std::mt19937 gen(rd());
+    //  std::uniform_real_distribution<float> dist(min_val, max_val);
+
+    //  for (size_t i = 0; i < mat.rows(); ++i) {
+    //    for (size_t j = 0; j < mat.cols(); ++j) {
+    //      mat(i, j) = dist(gen);
+    //    }
+    //  }
+    //}
+    //static void xavier_init(Matrix<float> &mat) {
+    //  // Match your MLP's Xavier implementation exactly
+    //  float fan_in = static_cast<float>(mat.cols());
+    //  float fan_out = static_cast<float>(mat.rows());
+    //  float scale = std::sqrt(2.0f / (fan_in + fan_out));
+
+    //  for (size_t i = 0; i < mat.rows(); ++i) {
+    //    for (size_t j = 0; j < mat.cols(); ++j) {
+    //      mat(i, j) = (((float)rand() / RAND_MAX) * 2.0f - 1.0f) * scale;
+    //    }
+    //  }
+    //}
+    //static void he_init(Matrix<float> &mat) {
+    //  std::random_device rd;
+    //  std::mt19937 gen(rd());
+    //  float fan_in = static_cast<float>(mat.cols());
+    //  float scale = std::sqrt(2.0f / fan_in);
+    //  std::normal_distribution<float> dist(0.0f, scale);
+
+    //  for (size_t i = 0; i < mat.rows(); ++i) {
+    //    for (size_t j = 0; j < mat.cols(); ++j) {
+    //      mat(i, j) = dist(gen);
+    //    }
+    //  }
+    //}
+  };
+}

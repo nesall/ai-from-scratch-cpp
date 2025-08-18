@@ -15,6 +15,7 @@ extern void test_mlp();
 extern void test_mnist_mlp(); 
 extern void test_conv(); 
 extern void test_cnn(); 
+extern void test_rnn(); 
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -37,9 +38,10 @@ int main() {
   run(test_matrix);
   run(test_perceptron);
   run(test_mlp);
-  run(test_mnist_mlp);
+  run(test_mnist_mlp);// takes a while
   run(test_conv);
   run(test_cnn);
+  run(test_rnn);
 
   return 0;
 }

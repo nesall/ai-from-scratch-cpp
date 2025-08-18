@@ -12,57 +12,21 @@
 
 models::MLP::MLP(const std::vector<size_t> &layers, float learning_rate, Initialization ini)
 {
-  assert(layers.size() >= 2 && "Need at least input and output layer");
-
-  //const auto nofConnections = std::reduce(layers.cbegin(), layers.cend(), size_t(1ull), std::multiplies<>{});
-  //numThreads_ = 32 < nofConnections  ? std::thread::hardware_concurrency() : 1;
-
+  assert(2 <= layers.size() && "Need at least input and output layer");
   layerSizes_ = layers;
   learningRate_ = learning_rate;
   layers_.resize(layers.size() - 1); // omit input layer (as it has no weights)
   for (size_t i = 0; i < layers.size() - 1; ++i) {
     const int currentLayerSize = layerSizes_[i + 1];  // neurons in current layer
     const int prevLayerSize = layerSizes_[i];         // inputs from previous layer
-    assert(currentLayerSize > 0 && "Layer size must be greater than 0");
+    assert(0 < currentLayerSize && "Layer size must be greater than 0");
     Layer layer;
-    layer.weights.resize(currentLayerSize, std::vector<float>(prevLayerSize));
+    layer.weights.resize(currentLayerSize, prevLayerSize);
     layer.biases.resize(currentLayerSize, 0.0f);
     layer.activations.resize(currentLayerSize, 0.0f);
     layer.deltas.resize(currentLayerSize, 0.0f);
     layers_[i] = std::move(layer);
-
-    switch (ini)
-    {
-    case Initialization::Xavier:
-    {
-      float scale = std::sqrt(2.0f / (prevLayerSize + currentLayerSize));
-
-      for (int j = 0; j < currentLayerSize; ++j) {
-        layers_[i].weights[j].resize(prevLayerSize);
-
-        for (int k = 0; k < prevLayerSize; ++k) {
-          layers_[i].weights[j][k] = (((float)rand() / RAND_MAX) * 2.0f - 1.0f) * scale;
-        }
-        layers_[i].biases[j] = 0.0f;
-      }
-      break;
-    }
-    case Initialization::He:
-      assert(!"Not implemented");
-      break;
-    default:
-    {
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::uniform_real_distribution<> dis(-0.5, 0.5);
-      for (auto &weights : layers_[i].weights) {
-        for (auto &w : weights) {
-          w = dis(gen);
-        }
-      }
-      break;
-    }
-    }
+    WeightInitializer::initialize_matrix(layers_[i].weights, currentLayerSize, prevLayerSize, ini);
   }
 }
 
@@ -98,9 +62,9 @@ void models::MLP::forwardPass(const std::vector<float> &input)
   auto currentInput = input;
   for (size_t i = 0; i < layers_.size(); ++i) {
 
-    std::vector<float> netInputs(layers_[i].weights.size());
+    std::vector<float> netInputs(layers_[i].weights.rows());
 #if USE_PARALLEL
-    std::vector<size_t> neuronIndices(layers_[i].weights.size());
+    std::vector<size_t> neuronIndices(layers_[i].weights.rows());
     std::iota(neuronIndices.begin(), neuronIndices.end(), 0);
     std::for_each(std::execution::par_unseq, neuronIndices.cbegin(), neuronIndices.cend(),
       [&](size_t j)
@@ -108,7 +72,7 @@ void models::MLP::forwardPass(const std::vector<float> &input)
         float netInput = layers_[i].biases[j];
         
         // Vectorized dot product
-        netInput += std::inner_product(layers_[i].weights[j].cbegin(), layers_[i].weights[j].cend(), currentInput.begin(), 0.0f);
+        netInput += std::inner_product(layers_[i].weights[j].begin(), layers_[i].weights[j].end(), currentInput.begin(), 0.0f);
         
         switch (af_) {
         case ActivationF::Sigmoid:
@@ -149,8 +113,9 @@ void models::MLP::forwardPass(const std::vector<float> &input)
         layers_[i].activations = netInputs;
         utils::softmax(layers_[i].activations);
       } else {
+        assert(layers_[i].activations.size() == netInputs.size());
         // sigmoid for hidden layers
-        std::transform(std::execution::par_unseq, netInputs.begin(), netInputs.end(), 
+        std::transform(std::execution::par_unseq, netInputs.cbegin(), netInputs.cend(), 
           layers_[i].activations.begin(), [this](float x) { return utils::sigmoid(x); });
       }
     }
@@ -166,7 +131,7 @@ void models::MLP::backwardPass(const std::vector<float> &input, const std::vecto
     float output = layers_.back().activations[j];
     if (af_ == ActivationF::Sigmoid) {
       float error = target[j] - output;
-      layers_.back().deltas[j] = error * utils::sigmoidDerivative(output);
+      layers_.back().deltas[j] = error * utils::deriveSigmoid(output);
     } else if (af_ == ActivationF::Softmax) {
       // For softmax + cross-entropy, derivative simplifies to: output - target
       layers_.back().deltas[j] = output - target[j];
@@ -179,7 +144,7 @@ void models::MLP::backwardPass(const std::vector<float> &input, const std::vecto
       for (size_t k = 0; k < layers_[i + 1].deltas.size(); ++k) {
         error += layers_[i + 1].deltas[k] * layers_[i + 1].weights[k][j];
       }
-      layers_[i].deltas[j] = error * utils::sigmoidDerivative(layers_[i].activations[j]);
+      layers_[i].deltas[j] = error * utils::deriveSigmoid(layers_[i].activations[j]);
     }
   }
 }
@@ -196,7 +161,7 @@ void models::MLP::updateWeights(const std::vector<float> &input)
     // Update weights and biases for each neuron in this layer
     const float sign = af_ == ActivationF::Softmax ? -1.f : 1.f;
 #if USE_PARALLEL
-    std::vector<size_t> neuronIndices(layers_[i].weights.size());
+    std::vector<size_t> neuronIndices(layers_[i].weights.rows());
     std::iota(neuronIndices.begin(), neuronIndices.end(), 0);
 
     std::for_each(std::execution::par_unseq, neuronIndices.cbegin(), neuronIndices.cend(),

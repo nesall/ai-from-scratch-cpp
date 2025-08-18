@@ -1,27 +1,18 @@
+#ifndef MLP_HPP
+#define MLP_HPP
+
+#include "common.hpp"
 #include <vector>
 
 namespace models {
 
   class MLP {
-  public:
-    enum class ActivationF {
-      Sigmoid,
-      ReLU,
-      Softmax
-    };
-
-    enum class Initialization {
-      RandomUniform,
-      Xavier,
-      He
-    };
-
   private:
     float learningRate_ = 0;
     std::vector<size_t> layerSizes_;
 
     struct Layer {
-      std::vector<std::vector<float>> weights;  // [neurons][inputs_from_prev_layer]
+      Matrix<float> weights;  // [neurons][inputs_from_prev_layer]
       std::vector<float> biases;                // [neurons]
       std::vector<float> activations;           // [neurons] - cached during forward pass
       std::vector<float> deltas;                // [neurons] - for backprop
@@ -44,3 +35,5 @@ namespace models {
   };
 
 }
+
+#endif // MLP_HPP
