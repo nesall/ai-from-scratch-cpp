@@ -30,12 +30,12 @@
 
 ## Structure for Each Week
 
-- 📘 Theory Markdown (`weekX_<topic>.md`)
-- 💻 C++ Implementation:
+- Theory Markdown (`weekX_<topic>.md`)
+- C++ 20 Implementation:
   - `src/models/<topic>.hpp/.cpp`
   - `tests/test_<topic>.cpp` with PASSED/FAILED outputs
-- 🚫 No external dependencies or frameworks
-- 🧠 Emphasis on intuition, clarity, and systems-level understanding
+- Uses SFML for optional visualization of some of the models like Linear Regression.
+- Ephasis on intuition, clarity, and systems-level understanding
 
 ---
 
