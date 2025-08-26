@@ -24,7 +24,8 @@
 | 13   | Recurrent Neural Networks    | Time sequences, memory state, BPTT |
 | 14   | Optimizers                   | SGD, Momentum, AdaGrad, RMSProp, Adam |
 | 15   | Regularization Techniques    | L1/L2, Dropout, Early stopping |
-| 16   | Final Projects               | Choose from CNN, chatbot, RL agent, etc |
+| 16   | Reinforcement Learning       | Q-learning, gridworld, Q-function, Bellman update rule |
+| 17   | Final Projects               | Choose from CNN, chatbot, RL agent, etc |
 
 ---
 
