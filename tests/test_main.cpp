@@ -12,10 +12,11 @@ extern void test_svm();
 extern void test_matrix();
 extern void test_perceptron();
 extern void test_mlp();
-extern void test_mnist_mlp(); 
-extern void test_conv(); 
-extern void test_cnn(); 
-extern void test_rnn(); 
+extern void test_mnist_mlp();
+extern void test_conv();
+extern void test_cnn();
+extern void test_rnn();
+extern void test_optimizers();
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -28,6 +29,7 @@ int main() {
     std::cout << std::fixed << std::setprecision(4) << elapsed.count() << " secs\n\n";
     };
 
+  run(test_optimizers);
   run(test_linear_regression);
   run(test_logistic_regression);
   run(test_knn_classification);

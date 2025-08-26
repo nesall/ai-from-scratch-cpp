@@ -58,6 +58,28 @@ struct Line : public Shape {
   }
 };
 
+struct Text : public Shape {
+  sf::Text text;
+  Text(const sf::Vector2f &position, const sf::Color &color, const sf::Font &font, const std::string &str, unsigned int charSize = 12) {
+    text.setFont(font);
+    text.setString(str);
+    text.setCharacterSize(charSize);
+    text.setFillColor(color);
+    text.setPosition(position);
+    text.setString(str);
+  }
+  void draw(DrawContext &ctx) const override {
+    ctx.window->draw(text);
+  }
+  sf::FloatRect boundingBox() const override {
+    return text.getGlobalBounds();
+  }
+  sf::Vector2f center() const override {
+    auto bounds = text.getGlobalBounds();
+    return sf::Vector2f(bounds.left + bounds.width / 2.f, bounds.top + bounds.height / 2.f);
+  }
+};
+
 
 
 class SimplePlotter : public DrawContext {
@@ -84,10 +106,17 @@ public:
   SimplePlotter(int width = 800, int height = 600)
     : window(sf::VideoMode(width, height), "Fitting Algorithm Visualizer") {
     // Load default font (you might want to load a specific font file)
-    if (!font.loadFromFile("arial.ttf")) {
+    if (!font.loadFromFile("../../data/arial.ttf")) {
       // Handle font loading error - use default font
     }
     DrawContext::window = &window;
+
+    //sf::View view(sf::FloatRect(0, 0, width, height));
+    //view.setCenter(width / 2.0f, height / 2.0f);
+    //view.setViewport(sf::FloatRect(0, 0, 1, 1));
+    //view.setSize(width, -height);
+
+    //window.setView(view);
   }
 
   void addShape(std::unique_ptr<Shape> shape) {
@@ -103,6 +132,10 @@ public:
 
   void addLine(const sf::Vector2f &start, const sf::Vector2f &end, const sf::Color &color = sf::Color::Blue) {
     addShape(std::make_unique<Line>(start, end, color));
+  }
+
+  void addText(const sf::Vector2f &position, const std::string &str, const sf::Color &color = sf::Color::Black) {
+    addShape(std::make_unique<Text>(position, color, font, str));
   }
 
   void clearShapes() {
@@ -215,6 +248,6 @@ public:
   }
 
   float toScreenY(float y) override {
-    return toScreen(y, dataBoundsMinY, dataBoundsMaxY, window.getSize().y - 2 * margin);
+    return window.getSize().y - toScreen(y, dataBoundsMinY, dataBoundsMaxY, window.getSize().y - 2 * margin);
   }
 };

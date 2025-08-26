@@ -1,6 +1,4 @@
-#include <SFML/Graphics.hpp>
 #include <vector>
-#include <cmath>
 #include <algorithm>
 #include <cassert>
 

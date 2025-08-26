@@ -42,8 +42,7 @@ Conv2D::Conv2D(int out_channels, int in_channels, int kernel_size, int stride, i
 void Conv2D::setWeights(const std::vector<std::vector<std::vector<std::vector<float>>>> &weights)
 {
   assert(weights.size() == out_channels_ && "Weights size must match number of output channels");
-  assert(!weights.empty() && !weights[0].empty() && !weights[0][0].empty() && !weights[0][0][0].empty() && 
-    "Weights must not be empty and must have valid dimensions");
+  assert(!weights.empty() && !weights[0].empty() && !weights[0][0].empty() && !weights[0][0][0].empty());
   weights_ = weights;
 }
 

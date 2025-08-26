@@ -12,8 +12,6 @@ void models::SupportVectorMachine::fit(const std::vector<std::vector<float>> &tr
 {
   // This is a simplified version of the SVM training process.
   // In practice, you would use a library like libsvm or scikit-learn for efficient SVM training.
-  // Here we will just initialize the model parameters.
-  // Initialize weights and bias
 
   int n_features = train_x[0].size();
   std::vector<float> weights(n_features, 0.0f);
@@ -56,10 +54,9 @@ void models::SupportVectorMachine::fit(const std::vector<std::vector<float>> &tr
 int models::SupportVectorMachine::predict(const std::vector<float> &x) const
 {
   assert(x.size() == weights_.size());
-  float dot_product = 0.0f;
+  float dot_product = bias_;
   for (size_t i = 0; i < weights_.size(); ++i) {
     dot_product += weights_[i] * x[i];
   }
-  dot_product += bias_;
   return (dot_product >= 0.0f) ? 1 : -1;
 }

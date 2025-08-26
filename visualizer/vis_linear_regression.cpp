@@ -3,8 +3,8 @@
 #include <SFML/Graphics.hpp>
 
 #include "plotter.hpp"
-#include "../include/models/linear_regression.hpp"
-#include "../include/datasynth.hpp"
+#include "models/linear_regression.hpp"
+#include "datasynth.hpp"
 
 
 void vis_linear_regression(SimplePlotter &plotter) {
@@ -25,9 +25,10 @@ void vis_linear_regression(SimplePlotter &plotter) {
   models::LinearRegression linreg(0.01f, 300);
   linreg.setStepCallback([&]()
     {
-
-      float y0 = linreg.predict(1.f);
-      float y1 = linreg.predict(9.f);
+      auto x0 = { 1.f };
+      auto x1 = { 9.f };
+      float y0 = linreg.predict(x0);
+      float y1 = linreg.predict(x1);
 
       if (0 < plotter.nofShapes()) {
         auto start = sf::Vector2f(plotter.toScreenX(1.f), plotter.toScreenY(y0));
@@ -49,7 +50,17 @@ void vis_linear_regression(SimplePlotter &plotter) {
       return true; // Continue the fitting process
     }
   );
-  linreg.fit(pts);
+
+  Matrix<float> X(num_samples, 1);
+  std::vector<float> y(num_samples);
+  {
+    for (size_t i = 0; i < pts.size(); i ++) {
+      X(i, 0) = pts[i].x;
+      y[i] = pts[i].y;
+    }
+  }
+
+  linreg.fit(X, y);
 #endif
 
 }

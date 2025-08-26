@@ -28,6 +28,7 @@ models::MLP::MLP(const std::vector<size_t> &layers, float learning_rate, Initial
     layers_[i] = std::move(layer);
     WeightInitializer::initialize_matrix(layers_[i].weights, currentLayerSize, prevLayerSize, ini);
   }
+  opt_ = std::make_unique<optimizers::SGD>(learning_rate);
 }
 
 void models::MLP::fit(const std::vector<std::vector<float>> &X, const std::vector<std::vector<float>> &y, size_t epochs, ActivationF af)
@@ -130,7 +131,7 @@ void models::MLP::backwardPass(const std::vector<float> &input, const std::vecto
   for (size_t j = 0; j < layers_.back().activations.size(); ++j) {
     float output = layers_.back().activations[j];
     if (af_ == ActivationF::Sigmoid) {
-      float error = target[j] - output;
+      float error = output - target[j];
       layers_.back().deltas[j] = error * utils::deriveSigmoid(output);
     } else if (af_ == ActivationF::Softmax) {
       // For softmax + cross-entropy, derivative simplifies to: output - target
@@ -159,24 +160,27 @@ void models::MLP::updateWeights(const std::vector<float> &input)
       layerInput = layers_[i - 1].activations;
     }
     // Update weights and biases for each neuron in this layer
-    const float sign = af_ == ActivationF::Softmax ? -1.f : 1.f;
 #if USE_PARALLEL
     std::vector<size_t> neuronIndices(layers_[i].weights.rows());
     std::iota(neuronIndices.begin(), neuronIndices.end(), 0);
 
     std::for_each(std::execution::par_unseq, neuronIndices.cbegin(), neuronIndices.cend(),
-      [this, i, sign, &layerInput](size_t j)
+      [this, i, &layerInput](size_t j)
       {
-        layers_[i].biases[j] += sign * learningRate_ * layers_[i].deltas[j];
-        for (size_t k = 0; k < layers_[i].weights[j].size(); ++k) {
-          layers_[i].weights[j][k] += sign * learningRate_ * layers_[i].deltas[j] * layerInput[k];
+        //layers_[i].biases[j] -= learningRate_ * layers_[i].deltas[j];
+        opt_->update(layers_[i].biases[j], layers_[i].deltas[j]);
+        std::vector<float> grads(layers_[i].weights[j].size());
+        for (size_t k = 0; k < layers_[i].weights[j].size(); k++) {
+          //layers_[i].weights[j][k] -= learningRate_ * layers_[i].deltas[j] * layerInput[k];
+          grads[k] = layers_[i].deltas[j] * layerInput[k];
         }
+        opt_->update(layers_[i].weights[j], grads, j);
       });
 #else
     for (size_t j = 0; j < layers_[i].weights.size(); ++j) {
-      layers_[i].biases[j] += sign * learningRate_ * layers_[i].deltas[j];
+      layers_[i].biases[j] -= learningRate_ * layers_[i].deltas[j];
       for (size_t k = 0; k < layers_[i].weights[j].size(); ++k) {
-        layers_[i].weights[j][k] += sign * learningRate_ * layers_[i].deltas[j] * layerInput[k];
+        layers_[i].weights[j][k] -= learningRate_ * layers_[i].deltas[j] * layerInput[k];
       }
     }
 #endif

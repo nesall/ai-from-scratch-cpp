@@ -2,7 +2,9 @@
 #define MLP_HPP
 
 #include "common.hpp"
+#include "models/optimizers.hpp"
 #include <vector>
+#include <memory>
 
 namespace models {
 
@@ -21,7 +23,7 @@ namespace models {
     std::vector<Layer> layers_;
     ActivationF af_ = ActivationF::Sigmoid;
 
-    //size_t numThreads_ = 1;
+    std::unique_ptr<optimizers::Optimizer> opt_;
 
   public:
     MLP(const std::vector<size_t> &layers, float learning_rate, Initialization ini = Initialization::RandomUniform);

@@ -5,8 +5,6 @@
 #include <stdexcept>
 #include <cassert>
 #include <span>
-#include <numeric>
-#include <execution>
 #include <algorithm>
 
 

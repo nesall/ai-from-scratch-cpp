@@ -1,7 +1,8 @@
 #include "models/logistic_regression.hpp"
+#include "common.hpp"
 #include <stdexcept>
 #include <algorithm>
-#include <iterator>
+#include <numeric>
 #include <iostream>
 #include <limits>
 
@@ -14,54 +15,70 @@ LogisticRegression::LogisticRegression(float lr, int ep)
   if (learning_rate_ > 1.0f) {
     std::cerr << "LogisticRegression - Warning: High learning rate (" << learning_rate_ << ") may cause divergence.\n";
   }
+  opt_ = std::make_unique<optimizers::SGD>(lr);
 }
 
 
-void LogisticRegression::fit(const std::vector<float> &x, const std::vector<int> &y)
+void LogisticRegression::fit(const Matrix<float> &X, const std::vector<int> &y)
 {
-  if (x.size() != y.size()) {
-    throw std::invalid_argument("Input x and labels y must have the same length.");
-  }
-  if (x.empty()) {
-    throw std::invalid_argument("Input x cannot be empty.");
-  }
-  // Initialize weights and bias
-  weight_ = 0.0f; // Could be initialized randomly
+  assert(!X.empty() && "Input vector must be non-zero length.");
+  assert(X.rows() == y.size() && "Feature matrix and target vector must have same number of samples.");
+  const auto nofSamples = X.rows();
+  const auto nofFeatures = X.cols();
+  WeightInitializer::initialize_vector(weights_, nofFeatures, Initialization::RandomUniform);
   bias_ = 0.0f;
+  float last_mse = std::numeric_limits<float>::max();
   for (int epoch = 0; epoch < epochs_; ++epoch) {
+    std::vector<float> weight_gradients(nofFeatures, 0.0f);
+    float bias_gradient = 0.0f;
     float total_loss = 0.0f;
-    for (size_t i = 0; i < x.size(); ++i) {
-      float z = weight_ * x[i] + bias_;
-      float prediction = sigmoid(z);
+    for (size_t i = 0; i < nofSamples; ++i) {
+      float z = bias_;
+      for (size_t j = 0; j < nofFeatures; j ++) {
+        z += weights_[j] * X(i, j);
+      }
+      float prediction = utils::sigmoid(z);
       float error = prediction - y[i];
       // Update weights and bias
-      weight_ -= learning_rate_ * error * x[i];
-      bias_ -= learning_rate_ * error;
-      total_loss += -y[i] * std::log(prediction) - (1 - y[i]) * std::log(1 - prediction);
+      for (size_t j = 0; j < nofFeatures; ++j) {
+        weight_gradients[j] += error * X(i, j) / nofSamples;
+      }
+      bias_gradient += error / nofSamples;
+
+      constexpr float eps = 1e-15f;
+      float clamped_pred = std::clamp(prediction, eps, 1.0f - eps); // for numerical stability
+      total_loss += -y[i] * std::log(clamped_pred) - (1 - y[i]) * std::log(1 - clamped_pred);
     }
+    
+    for (size_t j = 0; j < nofFeatures; j ++) {
+      opt_->update(weights_, weight_gradients);
+    }
+    opt_->update(bias_, bias_gradient);
     // Optionally print loss for monitoring
     if (epoch % 100 == 0) {
       //std::cout << "Epoch " << epoch << ", Loss: " << total_loss / x.size() << '\n';
     }
+    total_loss /= nofSamples;
+    if (std::fabs(last_mse - total_loss) < 1e-6f) {
+      std::cout << "\tearly stoppage, epoch " << epoch << ", mse " << total_loss << '\n';
+      break;
+    }
+    last_mse = total_loss;
   }
 }
 
-float LogisticRegression::predict_proba(float x) const
+int LogisticRegression::predict(std::span<const float> X) const
 {
-  if (x < 0) {
-    throw std::invalid_argument("Input x must be non-negative for logistic regression.");
-  }
-  float z = weight_ * x + bias_;
-  float prob = sigmoid(z);
-  return prob;
-}
+  assert(!X.empty());
+  assert(X.size() == weights_.size());
 
-int LogisticRegression::predict(float x) const
-{
-  if (x < 0) {
-    throw std::invalid_argument("Input x must be non-negative for logistic regression.");
+  float z = bias_;
+  for (size_t i = 0; i < X.size(); ++i) {
+    z += weights_[i] * X[i];
   }
-  float prob = predict_proba(x);
+  
+  float prob = utils::sigmoid(z);
+
   if (prob >= 0.5f) {
     return 1; // Class 1
   } else {
@@ -69,29 +86,14 @@ int LogisticRegression::predict(float x) const
   }
 }
 
-std::vector<int> LogisticRegression::predict(const std::vector<float> &x_vals) const
+std::vector<int> LogisticRegression::predict(const Matrix<float> &x_vals) const
 {
-  if (x_vals.empty()) {
-    throw std::invalid_argument("Input x_vals cannot be empty.");
-  }
+  assert(!weights_.empty() && "Model has not been trained yet.");
+  assert(!x_vals.empty());
   std::vector<int> predictions;
-  predictions.reserve(x_vals.size());
+  predictions.reserve(x_vals.rows());
   for (const auto &x : x_vals) {
-    if (x < 0) {
-      throw std::invalid_argument("Input x must be non-negative for logistic regression.");
-    }
     predictions.push_back(predict(x));
   }
   return predictions;
-}
-
-float LogisticRegression::sigmoid(float z) const
-{
-  if (z >= 0) {
-    float exp_neg_z = std::exp(-z);
-    return 1.0f / (1.0f + exp_neg_z);
-  } else {
-    float exp_z = std::exp(z);
-    return exp_z / (1.0f + exp_z);
-  }  
 }

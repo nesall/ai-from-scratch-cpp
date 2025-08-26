@@ -40,6 +40,7 @@ namespace utils {
     return userDir.string();
   }
 
+  // aka logistic function
   inline float sigmoid(float x) {
     return 1.0f / (1.0f + std::exp(-x));
   }
@@ -328,8 +329,24 @@ namespace models {
 #endif
     static void initialize_vector(std::vector<float> &vec, int size, Initialization method) {
       vec.resize(size);
-      // Biases are always initialized to zero in your MLP implementation
-      std::fill(vec.begin(), vec.end(), 0.0f);
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<> dist(-0.5, 0.5);
+      const float scale = std::sqrt(2.0f / size); // fan_in + fan_out (approx)
+      switch (method) {
+      case Initialization::RandomUniform:
+        for (auto &v : vec) v = dist(gen);
+        break;
+      case Initialization::Xavier:
+        for (auto &v : vec) v = (((float)rand() / RAND_MAX) * 2.0f - 1.0f) * scale;
+        break;
+      case Initialization::He:
+        if (1) {
+          std::normal_distribution<float> dist(0.0f, scale);
+          for (auto &v : vec) v = dist(gen);
+        }
+        break;
+      }
     }
 
   private:

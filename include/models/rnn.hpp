@@ -12,17 +12,14 @@ namespace models {
 
     void reset_state();
 
-    // Training method - activation functions passed here like your MLP
     void fit(const std::vector<std::vector<std::vector<float>>> &sequences,
       const std::vector<std::vector<std::vector<float>>> &targets,
       int epochs, float learning_rate,
       ActivationF hidden_af = ActivationF::Tanh,
       ActivationF output_af = ActivationF::Sigmoid);
 
-    // Prediction with single sequence
     std::vector<std::vector<float>> predict(const std::vector<std::vector<float>> &sequence);
 
-    // Weight management
     void initialize_weights(Initialization method = Initialization::Xavier);
 
     // Optional: Save/Load weights (like your MLP might need)
@@ -35,9 +32,6 @@ namespace models {
     int output_size_;
 
     // Parameters
-    //std::vector<std::vector<float>> Wxh_; // input -> hidden
-    //std::vector<std::vector<float>> Whh_; // hidden -> hidden
-    //std::vector<std::vector<float>> Why_; // hidden -> output
     Matrix<float> Wxh_; // input -> hidden
     Matrix<float> Whh_; // hidden -> hidden
     Matrix<float> Why_; // hidden -> output
@@ -61,9 +55,6 @@ namespace models {
     std::vector<TimeStep> timesteps_;       // Store sequence for backprop through time
 
     // Gradients
-    //std::vector<std::vector<float>> dWxh_;
-    //std::vector<std::vector<float>> dWhh_;
-    //std::vector<std::vector<float>> dWhy_;
     Matrix<float> dWxh_; // input -> hidden gradients
     Matrix<float> dWhh_; // hidden -> hidden gradients
     Matrix<float> dWhy_; // hidden -> output gradients

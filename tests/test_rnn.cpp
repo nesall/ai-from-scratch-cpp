@@ -86,8 +86,7 @@ void test_rnn() {
 
     // Train the network
     //std::cout << "Training on delayed echo task (200 sequences, 500 epochs)..." << std::endl;
-    rnn.fit(train_sequences, train_targets, 500, 0.05f,
-      models::ActivationF::Tanh, models::ActivationF::Sigmoid);
+    rnn.fit(train_sequences, train_targets, 500, 0.05f, models::ActivationF::Tanh, models::ActivationF::Sigmoid);
 
     // Test on simple patterns
     //std::cout << "Delayed Echo Test Results:" << std::endl;
