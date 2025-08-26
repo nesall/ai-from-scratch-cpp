@@ -14,7 +14,8 @@ add_executable(ai_tests
     test_cnn.cpp
     test_conv.cpp
     test_rnn.cpp
-    test_optimizers.cpp
+    test_optimizers.cpp 
+    test_regularization.cpp 
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp

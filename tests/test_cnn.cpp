@@ -224,6 +224,14 @@ void test_cnn_image_data() {
   cnn.set_conv_weights(0, utils::createXavierWeightsForConvLayer(8, 1, 5));
   cnn.set_conv_weights(1, utils::createXavierWeightsForConvLayer(16, 8, 3));
 
+  const size_t epochs = 100;
+  auto &mlp = cnn.mlp();
+  mlp.setRegularization(std::make_unique<regularization::L2>());
+  mlp.setDropout(std::make_unique<regularization::Dropout>(0.5f));
+  auto opt = new optimizers::Adam;
+  //opt->reset_scheduler(std::make_unique<optimizers::WarmupCosineDecayLR>(10, epochs));
+  mlp.setOptimizer(std::unique_ptr<optimizers::Adam>(opt));
+
 
   // Split data: 80% train, 20% test
   size_t train_size = (all_images.size() * 80) / 100;
@@ -244,7 +252,7 @@ void test_cnn_image_data() {
 
   // TRAIN THE CNN
   //std::cout << "\n--- TRAINING PHASE ---" << std::endl;
-  cnn.train(train_images, train_labels, 100, models::ActivationF::Softmax);
+  cnn.train(train_images, train_labels, epochs, models::ActivationF::Softmax);
 
 
   // Test on several images

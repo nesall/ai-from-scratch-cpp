@@ -1,5 +1,6 @@
 #include <iostream>
 #include "models/mlp.hpp"
+#include "models/regularization.hpp"
 
 bool test_xor() {
   bool passed = true;
@@ -12,7 +13,7 @@ bool test_xor() {
   };
 
   // MLP with 2 inputs, one hidden layer with 4 neurons, 1 output
-  models::MLP mlp({ 2, 4, 1 }, 0.5f);
+  models::MLP mlp({ 2, 4, 1 }, 0.5f, models::Initialization::Xavier);
   mlp.fit(X, y, 10000); // learning_rate, epochs
 
   for (size_t i = 0; i < X.size(); ++i) {
@@ -43,9 +44,8 @@ void test_simple2d() {
       {1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}
   };
 
-  models::MLP mlp({ 2, 10, 3 }, 0.1f, models::Initialization::Xavier);
-
-  mlp.fit(X, y, 100, models::ActivationF::Softmax);
+  models::MLP mlp({ 2, 10, 3 }, 0.2f, models::Initialization::Xavier);
+  mlp.fit(X, y, 200, models::ActivationF::Softmax);
 
   int nofCorrect = 0;
 

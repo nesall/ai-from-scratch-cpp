@@ -56,6 +56,9 @@ namespace models {
       size_t epochs = 100,
       ActivationF activation = ActivationF::Softmax);
 
+    MLP &mlp() { return mlp_; }
+    const MLP &mlp() const { return mlp_; }
+
   private:
     int in_channels_ = 0;
     int current_channels_ = 0;

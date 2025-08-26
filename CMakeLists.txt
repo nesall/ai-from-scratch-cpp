@@ -21,6 +21,7 @@ add_executable(ai_main
     include/models/cnn.hpp
     include/models/rnn.hpp
     include/models/optimizers.hpp
+    include/models/regularization.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp

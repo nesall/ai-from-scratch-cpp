@@ -167,6 +167,8 @@ std::vector<std::vector<std::vector<float>>> MaxPool2D::forward(const std::vecto
 models::CNN::CNN(int in_channels, const std::vector<size_t> &layers, float learningRate) 
   : in_channels_(in_channels), current_channels_(in_channels), mlp_(layers, learningRate)
 {
+  auto adam = new optimizers::Adam();
+  mlp_.setOptimizer(std::unique_ptr<optimizers::Adam>(adam));
 }
 
 std::vector<float> CNN::forward(const std::vector<std::vector<std::vector<float>>> &input)

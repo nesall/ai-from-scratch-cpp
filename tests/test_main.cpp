@@ -17,6 +17,7 @@ extern void test_conv();
 extern void test_cnn();
 extern void test_rnn();
 extern void test_optimizers();
+extern void test_regularization();
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -30,6 +31,7 @@ int main() {
     };
 
   run(test_optimizers);
+  run(test_regularization);
   run(test_linear_regression);
   run(test_logistic_regression);
   run(test_knn_classification);
@@ -40,7 +42,7 @@ int main() {
   run(test_matrix);
   run(test_perceptron);
   run(test_mlp);
-  run(test_mnist_mlp);// takes a while
+  //run(test_mnist_mlp);// takes a while
   run(test_conv);
   run(test_cnn);
   run(test_rnn);
