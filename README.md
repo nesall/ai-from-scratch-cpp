@@ -1,4 +1,4 @@
-# AI From Scratch in C++ — Full Course Outline
+# AI From Scratch in C++
 
 > Pure C++ implementations of popular AI and machine learning algorithms without using any third-party libraries.
 > No Python, no frameworks, no third-party libraries — just clean, idiomatic C++.
@@ -25,7 +25,10 @@
 | 14   | Optimizers                   | SGD, Momentum, AdaGrad, RMSProp, Adam |
 | 15   | Regularization Techniques    | L1/L2, Dropout, Early stopping |
 | 16   | Reinforcement Learning       | Q-learning, gridworld, Q-function, Bellman update rule |
-| 17   | Final Projects               | Choose from CNN, chatbot, RL agent, etc |
+| 17   | Unsupervised Learning        | k-Means clustering, PCA - Principal Component Analysis |
+| 18   | Unsupervised Learning        | k-Means clustering, PCA - Principal Component Analysis |
+| 19   | TO BE DECIDED                ||
+| 20   | Final Projects               | Choose from CNN, chatbot, RL agent, etc |
 
 ---
 
