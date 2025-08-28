@@ -26,8 +26,8 @@
 | 15   | Regularization Techniques    | L1/L2, Dropout, Early stopping |
 | 16   | Reinforcement Learning       | Q-learning, gridworld, Q-function, Bellman update rule |
 | 17   | Unsupervised Learning        | k-Means clustering, PCA - Principal Component Analysis |
-| 18   | Unsupervised Learning        | k-Means clustering, PCA - Principal Component Analysis |
-| 19   | TO BE DECIDED                ||
+| 18   | Genetic Algorithms           | Evolutionary algorithms |
+| 19   | TO BE DECIDED                |  |
 | 20   | Final Projects               | Choose from CNN, chatbot, RL agent, etc |
 
 ---
