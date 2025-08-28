@@ -33,12 +33,13 @@ models::MLP::MLP(const std::vector<size_t> &layers, float learning_rate, Initial
 }
 
 void models::MLP::fit(const std::vector<std::vector<float>> &X, const std::vector<std::vector<float>> &y, 
-  size_t epochs, ActivationF af, float validationRatio, size_t patience)
+  size_t epochs, ActivationF afOutput, ActivationF afHidden, float validationRatio, size_t patience)
 {
   assert(X.size() == y.size() && "Input and target sizes must match");
   assert(!X.empty() && X[0].size() == layerSizes_[0] && "Input size must match first layer size");
   assert(layerSizes_.back() == y[0].size() && "Output size must match last layer size");
-  af_ = af;
+  afForOutputLayers_ = afOutput;
+  afForHiddenLayers_ = afHidden;
 
   // Shuffle indices
   std::vector<size_t> indices(X.size());
@@ -65,23 +66,65 @@ void models::MLP::fit(const std::vector<std::vector<float>> &X, const std::vecto
   regularization::EarlyStopping stoppage(patience);
 
   for (int epoch = 0; epoch < epochs; ++epoch) {
-    for (size_t i = 0; i < X.size(); ++i) {
+    for (size_t i = 0; i < X_train.size(); ++i) {
       std::vector<int> target(layerSizes_.back());
       for (auto j = 0; j < layerSizes_.back(); ++j) {
-        target[j] = static_cast<int>(y[i][j]); // Assuming y[i] is one-hot encoded
+        target[j] = static_cast<int>(y_train[i][j]); // Assuming y[i] is one-hot encoded
       }
-      forwardPass(X[i]);
-      backwardPass(X[i], target);
-      updateWeights(X[i]);
+      forwardPass(X_train[i]);
+      backwardPass(X_train[i], target);
+      updateWeights(X_train[i]);
     }
+
+    if (debug_) {
+      // DEBUG: Check for dead ReLU neurons
+      if (epoch % 5 == 0) {  // Every 5 epochs
+        for (size_t layer_idx = 0; layer_idx < layers_.size() - 1; ++layer_idx) {  // Skip output layer
+          int dead_count = 0;
+          for (float activation : layers_[layer_idx].activations) {
+            if (activation == 0.0f) dead_count++;
+          }
+          std::cout << "Epoch " << epoch << ", Layer " << layer_idx
+            << ": " << dead_count << "/" << layers_[layer_idx].activations.size()
+            << " dead neurons" << std::endl;
+        }
+
+        // DEBUG: Check weight magnitudes
+        float max_weight = 0.0f, min_weight = 0.0f;
+        for (const auto &layer : layers_) {
+          for (size_t i = 0; i < layer.weights.rows(); ++i) {
+            for (size_t j = 0; j < layer.weights.cols(); ++j) {
+              max_weight = std::max(max_weight, layer.weights[i][j]);
+              min_weight = std::min(min_weight, layer.weights[i][j]);
+            }
+          }
+        }
+        std::cout << "Epoch " << epoch << ", Weight range: [" << min_weight << ", " << max_weight << "]" << std::endl;
+
+        // DEBUG: Check output layer activations for a sample
+        std::vector<float> sample_pred = predict(X_train[0]);
+        std::cout << "Epoch " << epoch << ", Sample prediction: ";
+        for (size_t i = 0; i < sample_pred.size(); ++i) {
+          std::cout << sample_pred[i] << " ";
+        }
+        std::cout << std::endl;
+      }
+    } // debug
 
     // --- Early stopping check ---
     float loss = 0.0f;
     for (size_t i = 0; i < X_val.size(); ++i) {
       std::vector<float> pred = predict(X_val[i]);
       for (size_t j = 0; j < pred.size(); ++j) {
-        float diff = pred[j] - y_val[i][j];
-        loss += diff * diff; // MSE loss
+        if (afForOutputLayers_ == ActivationF::Softmax) { // Cross-entropy loss
+          float target_val = y_val[i][j];
+          if (target_val > 0) {  // Only for the correct class
+            loss -= target_val * std::log(std::max(pred[j], 1e-15f));
+          }
+        } else { // MSE loss
+          float diff = pred[j] - y_val[i][j];
+          loss += diff * diff;
+        }
       }
     }
     loss /= X_val.size();
@@ -89,6 +132,12 @@ void models::MLP::fit(const std::vector<std::vector<float>> &X, const std::vecto
     if (stoppage.update(loss)) {
       std::cout << "\tearly stoppage, epoch " << epoch << ", loss " << loss << "\n";
       break;
+    }
+
+    if (debug_) {
+      if (epoch % 5 == 0 || epoch == epochs - 1) {
+        std::cout << "Epoch " << epoch << ", Validation Loss: " << loss << std::endl;
+      }
     }
   }
 }
@@ -105,66 +154,39 @@ void models::MLP::forwardPass(const std::vector<float> &input)
   assert(input.size() == layerSizes_[0] && "Input size must match the input layer size");
   auto currentInput = input;
   for (size_t i = 0; i < layers_.size(); ++i) {
+    const bool isOutputLayer = (i == layers_.size() - 1);
+    const ActivationF currentAF = isOutputLayer ? afForOutputLayers_ : afForHiddenLayers_;
 
     std::vector<float> netInputs(layers_[i].weights.rows());
-#if USE_PARALLEL
     std::vector<size_t> neuronIndices(layers_[i].weights.rows());
     std::iota(neuronIndices.begin(), neuronIndices.end(), 0);
     std::for_each(std::execution::par_unseq, neuronIndices.cbegin(), neuronIndices.cend(),
       [&](size_t j)
       {
-        float netInput = layers_[i].biases[j];
-        
-        // Vectorized dot product
+        float netInput = layers_[i].biases[j];        
         netInput += std::inner_product(layers_[i].weights[j].begin(), layers_[i].weights[j].end(), currentInput.begin(), 0.0f);
-        
-        switch (af_) {
-        case ActivationF::Sigmoid:
-          layers_[i].activations[j] = utils::sigmoid(netInput);
-          break;
-        case ActivationF::ReLU:
-          layers_[i].activations[j] = utils::relu(netInput);
-          break;
-        case ActivationF::Softmax:
-          netInputs[j] = netInput;
-          break;
-        }
+        netInputs[j] = netInput;
       }
     );
-#else
-    for (size_t j = 0; j < layers_[i].weights.size(); ++j) {
-      float netInput = layers_[i].biases[j];
-      for (size_t k = 0; k < currentInput.size(); ++k) {
-        netInput += layers_[i].weights[j][k] * currentInput[k];
-      }
+    // Apply activation function
+    if (currentAF == ActivationF::Softmax) {
+      layers_[i].activations = utils::softmax(netInputs);
+    } else {
+      std::transform(std::execution::par_unseq, netInputs.cbegin(), netInputs.cend(),
+        layers_[i].activations.begin(),
+        [currentAF](float x) {
+          switch (currentAF) {
+          case ActivationF::Sigmoid:
+            return utils::sigmoid(x);
+          case ActivationF::ReLU:
+            return utils::leakyRelu(x);
+          default:
+            return x;
+          }
+        });
+    }
 
-      switch (af_) {
-      case ActivationF::Sigmoid:
-        layers_[i].activations[j] = utils::sigmoid(netInput);
-        break;
-      case ActivationF::ReLU:
-        layers_[i].activations[j] = utils::relu(netInput);
-        break;
-      case ActivationF::Softmax:
-        netInputs[j] = netInput;
-        break;
-      }
-    }
-#endif
-    if (af_ == ActivationF::Softmax) {
-      if (i == layers_.size() - 1) {
-        // softmax for outer layer
-        layers_[i].activations = netInputs;
-        utils::softmax(layers_[i].activations);
-      } else {
-        assert(layers_[i].activations.size() == netInputs.size());
-        // sigmoid for hidden layers
-        std::transform(std::execution::par_unseq, netInputs.cbegin(), netInputs.cend(), 
-          layers_[i].activations.begin(), [this](float x) { return utils::sigmoid(x); });
-      }
-    }
-    
-    if (drp_ && i < layers_.size() - 1) {
+    if (drp_ && !isOutputLayer) {
       drp_->apply(layers_[i].activations, true);
     }
 
@@ -177,10 +199,10 @@ void models::MLP::backwardPass(const std::vector<float> &input, const std::vecto
   // 1. Calculate output layer deltas (error * derivative)
   for (size_t j = 0; j < layers_.back().activations.size(); ++j) {
     float output = layers_.back().activations[j];
-    if (af_ == ActivationF::Sigmoid) {
+    if (afForOutputLayers_ == ActivationF::Sigmoid) {
       float error = output - target[j];
       layers_.back().deltas[j] = error * utils::deriveSigmoid(output);
-    } else if (af_ == ActivationF::Softmax) {
+    } else if (afForOutputLayers_ == ActivationF::Softmax) {
       // For softmax + cross-entropy, derivative simplifies to: output - target
       layers_.back().deltas[j] = output - target[j];
     }
@@ -192,7 +214,12 @@ void models::MLP::backwardPass(const std::vector<float> &input, const std::vecto
       for (size_t k = 0; k < layers_[i + 1].deltas.size(); ++k) {
         error += layers_[i + 1].deltas[k] * layers_[i + 1].weights[k][j];
       }
-      layers_[i].deltas[j] = error * utils::deriveSigmoid(layers_[i].activations[j]);
+      //layers_[i].deltas[j] = error * utils::deriveSigmoid(layers_[i].activations[j]);// For hidden layers:
+      if (afForHiddenLayers_ == ActivationF::ReLU) {
+        layers_[i].deltas[j] = error * utils::deriveReLU(layers_[i].activations[j]);
+      } else if (afForHiddenLayers_ == ActivationF::Sigmoid) {
+        layers_[i].deltas[j] = error * utils::deriveSigmoid(layers_[i].activations[j]);
+      }
     }
   }
 }
@@ -207,30 +234,23 @@ void models::MLP::updateWeights(const std::vector<float> &input)
       layerInput = layers_[i - 1].activations;
     }
     // Update weights and biases for each neuron in this layer
-#if USE_PARALLEL
     std::vector<size_t> neuronIndices(layers_[i].weights.rows());
     std::iota(neuronIndices.begin(), neuronIndices.end(), 0);
 
     std::for_each(std::execution::par_unseq, neuronIndices.cbegin(), neuronIndices.cend(),
       [this, i, &layerInput](size_t j)
       {
-        //layers_[i].biases[j] -= learningRate_ * layers_[i].deltas[j];
         opt_->update(layers_[i].biases[j], layers_[i].deltas[j]);
         std::vector<float> grads(layers_[i].weights[j].size());
         for (size_t k = 0; k < layers_[i].weights[j].size(); k++) {
-          //layers_[i].weights[j][k] -= learningRate_ * layers_[i].deltas[j] * layerInput[k];
           grads[k] = layers_[i].deltas[j] * layerInput[k];
         }
         opt_->update(layers_[i].weights[j], grads, j);
         if (reg_) reg_->apply(layers_[i].weights[j]);
       });
-#else
-    for (size_t j = 0; j < layers_[i].weights.size(); ++j) {
-      layers_[i].biases[j] -= learningRate_ * layers_[i].deltas[j];
-      for (size_t k = 0; k < layers_[i].weights[j].size(); ++k) {
-        layers_[i].weights[j][k] -= learningRate_ * layers_[i].deltas[j] * layerInput[k];
-      }
+
+    if (i == layers_.size() - 1) {  // Only for the last layer
+      opt_->incrementStep();
     }
-#endif
   }
 }

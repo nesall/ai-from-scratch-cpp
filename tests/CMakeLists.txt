@@ -16,6 +16,7 @@ add_executable(ai_tests
     test_rnn.cpp
     test_optimizers.cpp 
     test_regularization.cpp 
+    test_q_learning.cpp 
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp
@@ -28,6 +29,7 @@ add_executable(ai_tests
     ../src/models/mlp.cpp
     ../src/models/cnn.cpp
     ../src/models/rnn.cpp
+    ../src/models/q_learning.cpp
 
 )
 

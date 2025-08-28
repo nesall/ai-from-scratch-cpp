@@ -8,7 +8,7 @@
 
 
 void vis_convolution(SimplePlotter &plotter) {
-
+  plotter.clearShapes();
   plotter.setDrawAxes(false);
   std::string path = "../../data/mario-transparent.png";
   //plotter.setDrawImage(path);

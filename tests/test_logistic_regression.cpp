@@ -53,7 +53,7 @@ void test_multifeature() {
   std::vector<int> y(num_samples);
 
   // Generate synthetic data
-  std::random_device rd;
+  //std::random_device rd;
   std::mt19937 gen(42); // Fixed seed for reproducibility
   std::uniform_real_distribution<float> feature_dist(-2.0f, 2.0f);
   std::normal_distribution<float> noise_dist(0.0f, 0.1f);

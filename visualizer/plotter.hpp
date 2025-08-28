@@ -4,10 +4,12 @@
 #include <algorithm>
 #include <thread>
 #include <filesystem>
+#include <functional>
+#include <cmath>
 
 
 struct DrawContext {
-  sf::RenderWindow *window = nullptr;
+  sf::RenderWindow *window_ = nullptr;
   virtual float toScreenX(float) = 0;
   virtual float toScreenY(float) = 0;
 };
@@ -28,7 +30,7 @@ struct Circle : public Shape {
   }
   void draw(DrawContext &ctx) const override {
     sf::CircleShape c{ circle };
-    ctx.window->draw(c);
+    ctx.window_->draw(c);
   }
   sf::FloatRect boundingBox() const override {
     return circle.getGlobalBounds();
@@ -45,7 +47,7 @@ struct Line : public Shape {
     line[1] = sf::Vertex(end, color);
   }
   void draw(DrawContext &ctx) const override {
-    ctx.window->draw(line, 2, sf::Lines);
+    ctx.window_->draw(line, 2, sf::Lines);
   }
   sf::FloatRect boundingBox() const override {
     return sf::FloatRect(std::min(line[0].position.x, line[1].position.x),
@@ -69,7 +71,7 @@ struct Text : public Shape {
     text.setString(str);
   }
   void draw(DrawContext &ctx) const override {
-    ctx.window->draw(text);
+    ctx.window_->draw(text);
   }
   sf::FloatRect boundingBox() const override {
     return text.getGlobalBounds();
@@ -83,15 +85,15 @@ struct Text : public Shape {
 
 
 class SimplePlotter : public DrawContext {
-  sf::RenderWindow window;
+  sf::RenderWindow window_;
   sf::Font font;
-  float margin = 50.f;
+  const float margin_ = 50.f;
   sf::Color backgroundColor = sf::Color::White;
   sf::Color axisColor = sf::Color::Black;
   sf::Color dataColor = sf::Color::Blue;
   sf::Color fitColor = sf::Color::Red;
 
-  std::vector<std::unique_ptr<Shape>> shapes;
+  std::vector<std::unique_ptr<Shape>> shapes_;
 
   float dataBoundsMinX = 0.f;
   float dataBoundsMaxX = 10.f;
@@ -100,27 +102,26 @@ class SimplePlotter : public DrawContext {
 
   bool drawAxes_ = true;
   sf::Texture bgTexture_;
-  //sf::Sprite bgSprite_;
+
+
+  struct TabBtn {
+    std::string name;
+    std::function<void()> func;
+  };
+  std::vector<TabBtn> tabs_;
 
 public:
-  SimplePlotter(int width = 800, int height = 600)
-    : window(sf::VideoMode(width, height), "Fitting Algorithm Visualizer") {
+  SimplePlotter(unsigned int width = 800, unsigned int height = 600)
+    : window_(sf::VideoMode(width, height), "Fitting Algorithm Visualizer") {
     // Load default font (you might want to load a specific font file)
     if (!font.loadFromFile("../../data/arial.ttf")) {
       // Handle font loading error - use default font
     }
-    DrawContext::window = &window;
-
-    //sf::View view(sf::FloatRect(0, 0, width, height));
-    //view.setCenter(width / 2.0f, height / 2.0f);
-    //view.setViewport(sf::FloatRect(0, 0, 1, 1));
-    //view.setSize(width, -height);
-
-    //window.setView(view);
+    DrawContext::window_ = &window_;
   }
 
   void addShape(std::unique_ptr<Shape> shape) {
-    shapes.push_back(std::move(shape));
+    shapes_.push_back(std::move(shape));
   }
 
   void addCircle(float radius, const sf::Vector2f &position, const sf::Color &color = sf::Color::Red) {
@@ -139,46 +140,54 @@ public:
   }
 
   void clearShapes() {
-    shapes.clear();
+    shapes_.clear();
+    bgTexture_ = {};
   }
 
   Shape *refShape(size_t index) {
-    if (index < shapes.size()) {
-      return shapes[index].get();
+    if (index < shapes_.size()) {
+      return shapes_[index].get();
     }
     return nullptr; // Or throw an exception
   }
 
   size_t nofShapes() const {
-    return shapes.size();
+    return shapes_.size();
   }
 
   void drawNextFrame() {
-    float plotWidth = window.getSize().x - 2 * margin;
-    float plotHeight = window.getSize().y - 2 * margin;
+    float plotWidth = window_.getSize().x - 2 * margin_;
+    float plotHeight = window_.getSize().y - 2 * margin_;
 
     sf::Event event;
-    while (window.pollEvent(event)) {
+    while (window_.pollEvent(event)) {
       if (event.type == sf::Event::Closed)
-        window.close();
+        window_.close();
+      else if (event.type == sf::Event::MouseMoved) {
+        onMouseMove(event.mouseMove.x, event.mouseMove.y);
+      } else if (event.type == sf::Event::MouseButtonPressed) {
+        onMouseButtonPress(event.mouseButton.button, event.mouseButton.x, event.mouseButton.y);
+      }
     }
 
-    window.clear(backgroundColor);
+    window_.clear(backgroundColor);
 
     sf::Sprite sprite(bgTexture_);
     if (sprite.getTexture()) {
-      sprite.setPosition(margin, margin);
-      window.draw(sprite);
+      sprite.setPosition(margin_, margin_);
+      window_.draw(sprite);
     }
 
     if (drawAxes_)
       drawAxes(plotWidth, plotHeight);
 
-    for (const auto &shape : shapes) {
+    for (const auto &shape : shapes_) {
       shape->draw(*this);
     }
 
-    window.display();
+    drawTabs();
+
+    window_.display();
   }
 
   void setDrawAxes(bool f) {
@@ -196,43 +205,89 @@ public:
     }
 
     if (bgTexture_.loadFromFile(path)) {
-      window.setSize(sf::Vector2u(bgTexture_.getSize().x + 2 * margin, bgTexture_.getSize().y + 2 * margin));
+      const auto w = bgTexture_.getSize().x + 2 * margin_;
+      const auto h = bgTexture_.getSize().y + 2 * margin_;
+      window_.setSize(sf::Vector2u(w, h));
       // After resizing, set the view to match the drawable area:
-      sf::View view(sf::FloatRect(0, 0, bgTexture_.getSize().x + 2 * margin, bgTexture_.getSize().y + 2 * margin));
-      window.setView(view);
+      sf::View view(sf::FloatRect(0, 0, w, h));
+      window_.setView(view);
     } else {
       std::cout << "Unable to load texture." << std::endl;
       // Handle error loading image
     }
   }
 
-  void setDrawImage(const sf::Texture &t) { 
+  void setWindowSize(unsigned w, unsigned h) {
+    window_.setSize(sf::Vector2u{ w, h });
+    sf::View view(sf::FloatRect(0, 0, w, h));
+    window_.setView(view);
   }
 
   void start() {
-    while (window.isOpen()) {
+    while (window_.isOpen()) {
       drawNextFrame();
       std::this_thread::sleep_for(std::chrono::milliseconds(16)); // Control the frame rate
     }
+  }
+
+  // simple GUI
+  void addTabBtn(const std::string &s, std::function<void()> f) {
+    tabs_.emplace_back(s, f);
   }
 
 private:
   void drawAxes(float plotWidth, float plotHeight) {
     // X-axis
     sf::RectangleShape xAxis(sf::Vector2f(plotWidth, 2.f));
-    xAxis.setPosition(margin, margin + plotHeight);
+    xAxis.setPosition(margin_, margin_ + plotHeight);
     xAxis.setFillColor(axisColor);
-    window.draw(xAxis);
+    window_.draw(xAxis);
 
     // Y-axis
     sf::RectangleShape yAxis(sf::Vector2f(2.f, plotHeight));
-    yAxis.setPosition(margin, margin);
+    yAxis.setPosition(margin_, margin_);
     yAxis.setFillColor(axisColor);
-    window.draw(yAxis);
+    window_.draw(yAxis);
   }
 
   float toScreen(float x, float minX, float maxX, float plotWidth) {
-    return margin + ((x - minX) / (maxX - minX)) * plotWidth;
+    return margin_ + ((x - minX) / (maxX - minX)) * plotWidth;
+  }
+
+  void drawTabs() {
+    const float padding = 5;
+    float tabbarWidth = window_.getSize().x - 2 * padding;
+    size_t nTabs = tabs_.size();
+    float totalPadding = (0 < nTabs) ? (nTabs - 1) * padding : 0;
+    float tabWidth = (tabbarWidth - totalPadding) / nTabs;
+    float tabHeight = margin_ - 2 * padding;
+    float x = padding;
+    float y = padding;
+    for (const auto &tab : tabs_) {
+      sf::RectangleShape tabRect(sf::Vector2f(tabWidth - padding, tabHeight));
+      tabRect.setPosition(x, y);
+      tabRect.setFillColor(sf::Color(200, 200, 200));
+      window_.draw(tabRect);
+      sf::Text tabText;
+      tabText.setFont(font);
+      tabText.setString(tab.name);
+      tabText.setCharacterSize(14);
+      tabText.setFillColor(sf::Color::Black);
+      sf::FloatRect textBounds = tabText.getLocalBounds();
+      tabText.setPosition(x + (tabWidth - padding - textBounds.width) / 2.f, y + (tabHeight - textBounds.height) / 2.f - 5);
+      window_.draw(tabText);
+      // Handle mouse click
+      if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window_);
+        if (mousePos.x >= x && mousePos.x <= x + tabWidth - padding &&
+          mousePos.y >= y && mousePos.y <= y + tabHeight) {
+          tab.func(); // Call the associated function
+          // Simple debounce
+          std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+      }
+      x += tabWidth;
+    }
   }
 
 public:
@@ -244,10 +299,41 @@ public:
   }
 
   float toScreenX(float x) override {
-    return toScreen(x, dataBoundsMinX, dataBoundsMaxX, window.getSize().x - 2 * margin);
+    return toScreen(x, dataBoundsMinX, dataBoundsMaxX, window_.getSize().x - 2 * margin_);
   }
 
   float toScreenY(float y) override {
-    return window.getSize().y - toScreen(y, dataBoundsMinY, dataBoundsMaxY, window.getSize().y - 2 * margin);
+    return window_.getSize().y - toScreen(y, dataBoundsMinY, dataBoundsMaxY, window_.getSize().y - 2 * margin_);
+  }
+
+  void onMouseMove(int x, int y) {
+    // Handle mouse move (e.g., highlight tab, show tooltip, etc.)
+    // For simplicity, we won't implement hover effects here
+
+  }
+
+  void onMouseButtonPress(sf::Mouse::Button button, int x, int y) {
+    // Handle mouse button press (e.g., select tab, interact with plot, etc.)
+    if (button == sf::Mouse::Left) {
+      // Check if a tab was clicked
+      const float padding = 5;
+      float tabbarWidth = window_.getSize().x - 2 * padding;
+      size_t nTabs = tabs_.size();
+      float totalPadding = (0 < nTabs) ? (nTabs - 1) * padding : 0;
+      float tabWidth = (tabbarWidth - totalPadding) / nTabs;
+      float tabHeight = margin_ - 2 * padding;
+      float tabX = padding;
+      float tabY = padding;
+      for (const auto &tab : tabs_) {
+        if (x >= tabX && x <= tabX + tabWidth - padding &&
+          y >= tabY && y <= tabY + tabHeight) {
+          tab.func(); // Call the associated function
+          // Simple debounce
+          std::this_thread::sleep_for(std::chrono::milliseconds(200));
+          break;
+        }
+        tabX += tabWidth;
+      }
+    }
   }
 };

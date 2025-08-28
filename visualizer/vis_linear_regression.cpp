@@ -8,6 +8,9 @@
 
 
 void vis_linear_regression(SimplePlotter &plotter) {
+  plotter.setWindowSize(800, 600);
+  plotter.clearShapes();
+  plotter.setDrawAxes(true);
   const int num_samples = 100;
   auto pts = generate_synthetic_data<float>(num_samples, 2.0f, 1.0f, 0.f, 10.f, 0.5f);
 

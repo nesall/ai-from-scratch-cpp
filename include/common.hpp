@@ -41,20 +41,28 @@ namespace utils {
   }
 
   // aka logistic function
+  [[nodiscard]]
   inline float sigmoid(float x) {
     return 1.0f / (1.0f + std::exp(-x));
   }
 
   // Sigmoid derivative: s'(x) = s(x) * (1 - s(x)) 
   // @param sx - result of sigmoid(x)
+  [[nodiscard]]
   inline float deriveSigmoid(float sx) {
     return sx * (1 - sx);
   }
 
-  inline float relu(float x) { return x > 0 ? x : 0; }
+  [[nodiscard]]
+  inline float relu(float x) { return 0 < x ? x : 0; }
 
-  inline float reluDerivative(float x) { return x > 0 ? 1 : 0; }
+  [[nodiscard]]
+  inline float leakyRelu(float x, float coef = 0.001f) { return 0 < x ? x : coef * x; }
 
+  [[nodiscard]]
+  inline float deriveReLU(float x) { return 0 < x ? 1 : 0; }
+
+  [[nodiscard]]
   inline std::vector<float> softmax(const std::vector<float> &z) {
     if (z.empty()) return z;
     std::vector<float> result(z.size());
@@ -78,6 +86,7 @@ namespace utils {
   }
 
 
+  [[nodiscard]]
   inline std::vector<std::vector<std::vector<std::vector<float>>>> 
     createRandomWeightsForConvLayer(int out_channels, int in_channels, int kernel_size) {
     std::random_device rd;
@@ -99,6 +108,7 @@ namespace utils {
     return weights;
   }
 
+  [[nodiscard]]
   inline std::vector<std::vector<std::vector<std::vector<float>>>>
     createXavierWeightsForConvLayer(int out_channels, int in_channels, int kernel_size) {
     std::random_device rd;
@@ -147,6 +157,7 @@ namespace models {
 
   class ActivationFunctions {
   public:
+    [[nodiscard]]
     static std::vector<float> apply(const std::vector<float> &x, ActivationF af) {
       std::vector<float> result(x.size());
       switch (af) {
@@ -173,6 +184,7 @@ namespace models {
       }
       return result;
     }
+    [[nodiscard]]
     static std::vector<float> derivative(const std::vector<float> &x, ActivationF af) {
       std::vector<float> result(x.size());
       switch (af) {
@@ -207,6 +219,7 @@ namespace models {
       }
       return result;
     }
+    [[nodiscard]]
     static float apply_single(float x, ActivationF af) {
       switch (af) {
       case ActivationF::Sigmoid:
@@ -221,6 +234,7 @@ namespace models {
         throw std::runtime_error("Unknown activation function");
       }
     }
+    [[nodiscard]]
     static float derivative_single(float x, ActivationF af) {
       switch (af) {
       case ActivationF::Sigmoid:

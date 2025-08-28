@@ -292,10 +292,12 @@ private:
 class MatrixOps {
 public:
   // Matrix-Vector operations (for your Matrix class)
+  [[nodiscard]]
   static std::vector<float> matvec_mul(const Matrix<float> &W, const std::vector<float> &x) {
     return matvec_mul(W, std::span<const float>(x));
   }
 
+  [[nodiscard]]
   static std::vector<float> matvec_mul(const Matrix<float> &W, std::span<const float> x) {
     assert (W.cols() == x.size());
     std::vector<float> result(W.rows(), 0.0f);
@@ -308,6 +310,7 @@ public:
   }
 
   // Vector-Matrix operations (for gradients: outer product creates matrix)
+  [[nodiscard]]
   static Matrix<float> vec_outer_product(const std::vector<float> &a, const std::vector<float> &b) {
     Matrix<float> result(a.size(), b.size());
     for (size_t i = 0; i < a.size(); ++i) {
@@ -319,6 +322,7 @@ public:
   }
 
   // Matrix-Matrix operations (already in your Matrix class, but adding utilities)
+  [[nodiscard]]
   static Matrix<float> hadamard_matrix(const Matrix<float> &a, const Matrix<float> &b) {
     assert (a.rows() == b.rows() && a.cols() == b.cols());
 
@@ -332,6 +336,7 @@ public:
   }
 
   // Vector operations (for compatibility with your RNN interface)
+  [[nodiscard]]
   static std::vector<float> matvec_mul(const std::vector<std::vector<float>> &W, const std::vector<float> &x) {
     assert (!W.empty() && W[0].size() == x.size());
 
@@ -344,6 +349,7 @@ public:
     return result;
   }
 
+  [[nodiscard]]
   static std::vector<float> add(const std::vector<float> &a, const std::vector<float> &b) {
     assert (a.size() == b.size());
 
@@ -354,6 +360,7 @@ public:
     return result;
   }
 
+  [[nodiscard]]
   static std::vector<float> subtract(const std::vector<float> &a, const std::vector<float> &b) {
     assert (a.size() == b.size());
 
@@ -364,6 +371,7 @@ public:
     return result;
   }
 
+  [[nodiscard]]
   static std::vector<float> hadamard(const std::vector<float> &a, const std::vector<float> &b) {
     assert (a.size() == b.size());
 
@@ -374,6 +382,7 @@ public:
     return result;
   }
 
+  [[nodiscard]]
   static std::vector<std::vector<float>> outer_product(const std::vector<float> &a,
     const std::vector<float> &b) {
     std::vector<std::vector<float>> result(a.size(), std::vector<float>(b.size()));
@@ -385,6 +394,7 @@ public:
     return result;
   }
 
+  [[nodiscard]]
   static std::vector<float> scalar_multiply(const std::vector<float> &vec, float scalar) {
     std::vector<float> result(vec.size());
     for (size_t i = 0; i < vec.size(); ++i) {
@@ -393,6 +403,7 @@ public:
     return result;
   }
 
+  [[nodiscard]]
   static std::vector<std::vector<float>> to_vector_matrix(const Matrix<float> &mat) {
     std::vector<std::vector<float>> result(mat.rows(), std::vector<float>(mat.cols()));
     for (size_t i = 0; i < mat.rows(); ++i) {
@@ -442,6 +453,7 @@ public:
 
 namespace utils {
 
+  [[nodiscard]] 
   inline std::vector<float> convolve1D(
     const std::vector<float> &input,
     const std::vector<float> &kernel,
@@ -452,7 +464,6 @@ namespace utils {
     int kernel_size = static_cast<int>(kernel.size());
     int output_size = (input_size - kernel_size + 2 * padding) / stride + 1;
     std::vector<float> output(output_size, 0.0f);
-
     for (int i = 0; i < output_size; ++i) {
       for (int j = 0; j < kernel_size; ++j) {
         int input_index = i * stride + j - padding;
@@ -461,19 +472,17 @@ namespace utils {
         }
       }
     }
-
     return output;
   }
 
 
+  [[nodiscard]]
   inline std::vector<float> convolve2D_separable(
     const std::vector<float> &input,
     int width, int height,
     const std::vector<float> &kernel1D,
     int padding = 1) {
-
     std::vector<float> temp(width * height);
-
     // Horizontal convolution
     for (int y = 0; y < height; ++y) {
       std::vector<float> row(width);
@@ -485,7 +494,6 @@ namespace utils {
         temp[y * width + x] = conv_row[x];
       }
     }
-
     // Vertical convolution
     std::vector<float> result(width * height);
     for (int x = 0; x < width; ++x) {
@@ -498,11 +506,11 @@ namespace utils {
         result[y * width + x] = conv_col[y];
       }
     }
-
     return result;
   }
 
 
+  [[nodiscard]]
   inline std::vector<float> convolve2D(
     const Matrix<float> &input,
     const Matrix<float> &kernel,

@@ -136,12 +136,16 @@ std::vector<float> run_optimizer(const std::string &name, size_t steps, auto &op
 }
 
 void vis_optimizers(SimplePlotter &plotter) {
+  plotter.setWindowSize(800, 600);
+  plotter.clearShapes();
+  plotter.setDrawAxes(true);
+
   const int steps = 1000;
   optimizers::SGD sgd(0.195f);
-  sgd.reset_scheduler(std::make_unique<optimizers::StepDecayLR>(std::vector<int>{100, 500}));
+  sgd.resetScheduler(std::make_unique<schedulers::StepDecayLR>(std::vector<int>{100, 500}));
   optimizers::Momentum mom(0.05f, 0.9f);
   optimizers::RMSProp rms(0.45f, 0.9f);
-  rms.reset_scheduler(std::make_unique<optimizers::WarmupCosineDecayLR>(100, steps));
+  rms.resetScheduler(std::make_unique<schedulers::WarmupCosineDecayLR>(100, steps));
   optimizers::Adam adm(0.4f, 0.9f, 0.999f);
 
   auto noise = generate_noise(steps);
@@ -182,4 +186,154 @@ void vis_optimizers(SimplePlotter &plotter) {
   OptimizerAnalysis::analyze_success_factors();
   OptimizerAnalysis::loss_landscape_insights();
   OptimizerAnalysis::practical_lessons();
+}
+
+namespace {
+  const size_t steps = 1000;
+  const float base_lr = 0.01f;
+}
+
+void vis_lr_noiseinducing(SimplePlotter &plotter) {
+  plotter.setWindowSize(800, 600);
+  plotter.clearShapes();
+  plotter.setDrawAxes(true);
+  const float noiseRatio = 0.1f;
+
+  std::vector<std::pair<std::string, sf::Color>> configs = {
+    {"Uniform + Linear", sf::Color::Blue},
+    {"Uniform + Cosine", sf::Color::Green},
+    {"Normal + Linear", sf::Color::Red},
+    {"Normal + Exponential", sf::Color::Magenta}
+  };
+
+  std::vector<std::vector<float>> lr_curves;
+
+  using namespace schedulers;
+
+  for (const auto &[label, color] : configs) {
+    NoiseInducingLR::DistributionType dist = label.find("Uniform") != std::string::npos
+      ? NoiseInducingLR::DistributionType::Uniform
+      : NoiseInducingLR::DistributionType::Normal;
+
+    NoiseInducingLR::NoiseDecayType decay = label.find("Linear") != std::string::npos
+      ? NoiseInducingLR::NoiseDecayType::Linear
+      : label.find("Cosine") != std::string::npos
+      ? NoiseInducingLR::NoiseDecayType::Cosine
+      : NoiseInducingLR::NoiseDecayType::Exponential;
+
+    NoiseInducingLR scheduler(noiseRatio, 42, steps, dist, decay);
+
+    std::vector<float> lr_values;
+    for (size_t i = 0; i < steps; ++i) {
+      lr_values.push_back(scheduler.get_lr(base_lr, static_cast<int>(i)));
+    }
+    lr_curves.push_back(std::move(lr_values));
+  }
+
+  // Determine global min/max for plotting bounds
+  float minval = base_lr, maxval = base_lr;
+  for (const auto &curve : lr_curves) {
+    for (float val : curve) {
+      minval = std::min(minval, val);
+      maxval = std::max(maxval, val);
+    }
+  }
+
+  // Plot each curve
+  plotter.setDataBounds(0.f, static_cast<float>(steps), minval, maxval);
+
+  for (size_t idx = 0; idx < lr_curves.size(); ++idx) {
+    const auto &curve = lr_curves[idx];
+    const auto &[label, color] = configs[idx];
+
+    for (size_t i = 0; i < steps; ++i) {
+      plotter.addCircle(2.f,
+        sf::Vector2f(plotter.toScreenX(static_cast<float>(i)), plotter.toScreenY(curve[i])),
+        color);
+    }
+  }
+  
+  float y = maxval;
+  for (const auto &[label, color] : configs) {
+    plotter.addText(sf::Vector2f(plotter.toScreenX(steps - 200), plotter.toScreenY(y)), label, color);
+    y -= maxval / 100.f;
+  }
+
+}
+
+void vis_lr_others(SimplePlotter &plotter) {
+  plotter.setWindowSize(800, 600);
+  plotter.clearShapes();
+  plotter.setDrawAxes(true);
+  const float noiseRatio = 0.1f;
+
+  std::vector<std::pair<std::string, sf::Color>> configs = {
+    {"Exponential Decay", sf::Color::Blue},
+    {"Adaptive Restart", sf::Color::Green},
+    {"Cyclical", sf::Color::Red},
+    {"Warmup Cosine Decay", sf::Color::Magenta},
+    {"Step Decey", sf::Color::Cyan}
+  };
+
+  std::vector<std::vector<float>> lr_curves;
+
+  using namespace schedulers;
+
+  for (const auto &[label, color] : configs) {
+    LRScheduler *p;
+    if (label.find("Exponential") != std::string::npos) {
+      p = new ExponentialDecayLR(0.95f, steps / 100);
+    } else if (label.find("Cosine") != std::string::npos) {
+
+      //p = new NoiseInducingLR(0.05f, std::nullopt, steps, NoiseInducingLR::DistributionType::Normal, NoiseInducingLR::NoiseDecayType::Exponential);
+      auto t = new WarmupCosineDecayLR(steps / 10, steps);
+      //p->setInnerScheduler(std::unique_ptr<LRScheduler>(t));
+      p = t;
+
+    } else if (label.find("Cyclical") != std::string::npos) {
+      p = new CyclicalLR(0.0001f, base_lr, steps/10); // 10 cycles
+    } else if (label.find("Adaptive") != std::string::npos) {
+      p = new AdaptiveRestartLR(base_lr, 100);
+    } else if (label.find("Step D") != std::string::npos) {
+      p = new StepDecayLR(std::vector<int>{200, 500, 700});
+    }
+    if (p) {
+      std::vector<float> lr_values;
+      for (size_t i = 0; i < steps; ++i) {
+        lr_values.push_back(p->get_lr(base_lr, static_cast<int>(i)));
+      }
+      lr_curves.push_back(std::move(lr_values));
+    }
+    delete p;
+  }
+
+  // Determine global min/max for plotting bounds
+  float minval = base_lr, maxval = base_lr;
+  for (const auto &curve : lr_curves) {
+    for (float val : curve) {
+      minval = std::min(minval, val);
+      maxval = std::max(maxval, val);
+    }
+  }
+
+  // Plot each curve
+  plotter.setDataBounds(0.f, static_cast<float>(steps), minval, maxval);
+
+  for (size_t idx = 0; idx < lr_curves.size(); ++idx) {
+    const auto &curve = lr_curves[idx];
+    const auto &[label, color] = configs[idx];
+
+    for (size_t i = 0; i < steps; ++i) {
+      plotter.addCircle(2.f,
+        sf::Vector2f(plotter.toScreenX(static_cast<float>(i)), plotter.toScreenY(curve[i])),
+        color);
+    }
+  }
+
+  float y = maxval;
+  for (const auto &[label, color] : configs) {
+    plotter.addText(sf::Vector2f(plotter.toScreenX(steps - 200), plotter.toScreenY(y)), label, color);
+    y -= maxval / 40.f;
+  }
+
 }

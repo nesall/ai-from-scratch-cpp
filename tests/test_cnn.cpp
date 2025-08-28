@@ -229,7 +229,7 @@ void test_cnn_image_data() {
   mlp.setRegularization(std::make_unique<regularization::L2>());
   mlp.setDropout(std::make_unique<regularization::Dropout>(0.5f));
   auto opt = new optimizers::Adam;
-  //opt->reset_scheduler(std::make_unique<optimizers::WarmupCosineDecayLR>(10, epochs));
+  //opt->resetScheduler(std::make_unique<optimizers::WarmupCosineDecayLR>(10, epochs));
   mlp.setOptimizer(std::unique_ptr<optimizers::Adam>(opt));
 
 

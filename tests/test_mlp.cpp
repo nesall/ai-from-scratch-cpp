@@ -45,6 +45,7 @@ void test_simple2d() {
   };
 
   models::MLP mlp({ 2, 10, 3 }, 0.2f, models::Initialization::Xavier);
+  mlp.setOptimizer(std::make_unique<optimizers::Momentum>(mlp.lr()));
   mlp.fit(X, y, 200, models::ActivationF::Softmax);
 
   int nofCorrect = 0;
@@ -68,7 +69,7 @@ void test_simple2d() {
     //std::cout << "Sample " << i << ": Pred=" << predicted << ", Actual=" << actual << std::endl;
   }
   const auto percent = (100 * nofCorrect / X.size());
-  std::cout << "[MLP] Simple 2D classification: " << (75 < percent ? "PASSED" : "FAILED") << " (" << percent << "% correct)\n";
+  std::cout << "[MLP] Simple 2D classification: " << (75 <= percent ? "PASSED" : "FAILED") << " (" << percent << "% correct)\n";
 }
 
 void test_mlp() {

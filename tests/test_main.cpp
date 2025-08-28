@@ -18,6 +18,7 @@ extern void test_cnn();
 extern void test_rnn();
 extern void test_optimizers();
 extern void test_regularization();
+extern void test_q_learning();
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -42,10 +43,11 @@ int main() {
   run(test_matrix);
   run(test_perceptron);
   run(test_mlp);
-  //run(test_mnist_mlp);// takes a while
-  run(test_conv);
+  run(test_mnist_mlp);// takes a while
+  //run(test_conv);
   run(test_cnn);
-  run(test_rnn);
+  //run(test_rnn);
+  //run(test_q_learning);
 
   return 0;
 }

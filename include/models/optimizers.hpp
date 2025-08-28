@@ -1,21 +1,43 @@
 #pragma once
 #include <vector>
 #include <cassert>
+#include <iostream>
+#include <utility>
 #include <unordered_map>
+#include <map>
 #include <span>
 #include <mutex>
 #include <cmath>
 #include <memory>
 #include <numbers>
+#include <optional>
+#include <random>
 
 
-namespace optimizers {
+
+namespace schedulers {
 
   class LRScheduler {
+    mutable std::unordered_map<size_t, size_t> statsLrFreq_;
+    mutable std::mutex mutex_;
+  protected:
+    std::unique_ptr<LRScheduler> inner_;
+    void recordLr(float lr) const {
+      std::unique_lock<std::mutex> lock(mutex_);
+      statsLrFreq_[size_t(lr * 1'000'000.f)] ++;
+      lock.unlock();
+
+    }
   public:
     virtual ~LRScheduler() = default;
     virtual float get_lr(float base_lr, int step) const = 0;
     virtual void reset() {}  // For stateful schedulers
+
+    void setInnerScheduler(std::unique_ptr<LRScheduler> p) {
+      inner_ = std::move(p);
+    }
+
+    std::unordered_map<size_t, size_t> statsLrFreq() const { return statsLrFreq_; }
   };
 
   class ConstantLR : public LRScheduler {
@@ -28,27 +50,34 @@ namespace optimizers {
   class WarmupCosineDecayLR : public LRScheduler {
   public:
     WarmupCosineDecayLR(int warmup_steps, int total_steps, float min_lr_ratio = 0.01f)
-      : warmup_steps_(warmup_steps), total_steps_(total_steps), min_lr_ratio_(min_lr_ratio) {
+      : warmupSteps_(warmup_steps), totalSteps_(total_steps), minLrRatio_(min_lr_ratio) {
     }
 
     float get_lr(float base_lr, int step) const override {
-      if (step < warmup_steps_) {
+      step = std::min(step, totalSteps_);
+      float lr = base_lr;
+      if (step < warmupSteps_) {
         // Linear warmup
-        return base_lr * (static_cast<float>(step) / warmup_steps_);
+        lr = base_lr * (static_cast<float>(step) / warmupSteps_);
       } else {
         // Cosine decay
-        int decay_steps = step - warmup_steps_;
-        int max_decay_steps = total_steps_ - warmup_steps_;
-        float progress = std::min(static_cast<float>(decay_steps) / max_decay_steps, 1.0f);
+        int decaySteps = step - warmupSteps_;
+        int maxDecaySteps = totalSteps_ - warmupSteps_;
+        float progress = std::min(static_cast<float>(decaySteps) / maxDecaySteps, 1.0f);
         float cosine_decay = 0.5f * (1.0f + std::cos(std::numbers::pi * progress));
-        return base_lr * (min_lr_ratio_ + (1.0f - min_lr_ratio_) * cosine_decay);
+        lr = base_lr * (minLrRatio_ + (1.0f - minLrRatio_) * cosine_decay);
       }
+      if ((step % int(totalSteps_ / 100.f)) == 0) {
+        //std::cout << "\tWarmupCosineDecayLR lr " << lr << " (step " << step << ")\n";
+        recordLr(lr);
+      }
+      return lr;
     }
 
   private:
-    int warmup_steps_;
-    int total_steps_;
-    float min_lr_ratio_;
+    int warmupSteps_;
+    int totalSteps_;
+    float minLrRatio_;
   };
 
   // Exponential Decay
@@ -87,6 +116,83 @@ namespace optimizers {
     float gamma_;
   };
 
+  // Predefined set of lr that overwrites base_lr.
+  class StepOverwriteLR : public LRScheduler {
+  public:
+    StepOverwriteLR(std::map<int, float> milestones) : milestones_(std::move(milestones)) {}
+    float get_lr(float base_lr, int step) const override {
+      for (auto a : milestones_) {
+        if (a.first <= step) base_lr = a.second;
+      }
+      return base_lr;
+    }
+  private:
+    std::map<int, float> milestones_;
+  };
+
+  class NoiseInducingLR : public LRScheduler {
+  public:
+    enum class DistributionType { Uniform, Normal };
+    enum class NoiseDecayType { Linear, Cosine, Exponential };
+    NoiseInducingLR(float noiseRatio = 0.02f,
+      std::optional<int> seed = std::nullopt,
+      std::optional<size_t> totalSteps = std::nullopt,
+      DistributionType distrType = DistributionType::Uniform,
+      NoiseDecayType decayType = NoiseDecayType::Linear)
+      : noiseRatio_(noiseRatio),
+      rng_(seed.has_value() ? seed.value() : int(std::random_device{}())),
+      totalSteps_(totalSteps),
+      distrType_(distrType),
+      decayType_(decayType)
+    {
+    }
+    float get_lr(float base_lr, int step) const override {
+      if (inner_) base_lr = inner_->get_lr(base_lr, step);
+      float decayFactor = 1.0f;
+      if (totalSteps_.has_value()) {
+        float progress = static_cast<float>(step) / *totalSteps_;
+        switch (decayType_) {
+        case NoiseDecayType::Linear:
+          decayFactor = 1.0f - progress;
+          break;
+        case NoiseDecayType::Cosine:
+          decayFactor = 0.5f * (1.0f + std::cos(std::numbers::pi * progress));
+          break;
+        case NoiseDecayType::Exponential:
+          decayFactor = std::exp(-5.0f * progress);  // Tunable decay rate
+          break;
+        }
+      }
+      float noise = 0.0f;
+      switch (distrType_) {
+      case DistributionType::Uniform:
+        if (1) {
+          std::uniform_real_distribution<float> dist(-base_lr * noiseRatio_, base_lr * noiseRatio_);
+          noise = dist(rng_);
+        }
+        break;
+      case DistributionType::Normal:
+        if (0 < base_lr) {
+          std::normal_distribution<float> dist(0.0f, base_lr * noiseRatio_ / 2.0f);  // stddev scaled
+          noise = dist(rng_);
+        }
+        break;
+      }
+      const auto lr = base_lr + noise * decayFactor;
+      if (totalSteps_.has_value() && (step % int(*totalSteps_ / 100.f)) == 0) {
+        //std::cout << "\tWarmupCosineDecayLR lr " << lr << " (step " << step << ")\n";
+        recordLr(lr);
+      }
+      return lr;
+    }
+  private:
+    float noiseRatio_;
+    mutable std::mt19937 rng_;
+    std::optional<size_t> totalSteps_;
+    NoiseDecayType decayType_;
+    DistributionType distrType_;
+  };
+
   // Cyclical Learning Rate (for finding good learning rates)
   class CyclicalLR : public LRScheduler {
   public:
@@ -106,7 +212,7 @@ namespace optimizers {
   };
 
   // Advanced - for escaping local minimas
-  class AdaptiveRestartLR : public optimizers::LRScheduler {
+  class AdaptiveRestartLR : public LRScheduler {
   public:
     AdaptiveRestartLR(float initial_lr, int restart_period = 200, float restart_factor = 0.8f)
       : initial_lr_(initial_lr), restart_period_(restart_period), restart_factor_(restart_factor) {
@@ -130,14 +236,18 @@ namespace optimizers {
     float restart_factor_;
   };
 
+} // namespace schedulers
 
-  //----------------------------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------------------------
+
+
+namespace optimizers {
 
   class Optimizer {
   public:
     Optimizer() {
-      reset_scheduler(std::make_unique<ConstantLR>());
+      resetScheduler(std::make_unique<schedulers::ConstantLR>());
     }
     virtual ~Optimizer() = default;
     Optimizer(const Optimizer &) = delete;
@@ -154,9 +264,10 @@ namespace optimizers {
       w = param_arr[0];
     }
 
-    void reset_scheduler(std::unique_ptr<LRScheduler> p) {
+    void resetScheduler(std::unique_ptr<schedulers::LRScheduler> p) {
       scheduler_ = std::move(p);
     }
+    void incrementStep() { global_step_++; }
 
   protected:
     // Helper for derived classes to get scheduled learning rate
@@ -164,10 +275,9 @@ namespace optimizers {
       current_lr_ = scheduler_ ? scheduler_->get_lr(base_lr, global_step_) : base_lr;
       return current_lr_;
     }
-    void increment_step() { global_step_++; }
 
   private:
-    std::unique_ptr<LRScheduler> scheduler_;
+    std::unique_ptr<schedulers::LRScheduler> scheduler_;
     int global_step_ = 0;
     float current_lr_ = 0.0f;
   };
@@ -186,7 +296,7 @@ namespace optimizers {
       for (size_t i = 0; i < params.size(); ++i) {
         params[i] -= lr * grads[i];
       }
-      increment_step();
+      incrementStep();
     }
 
   private:
@@ -201,21 +311,25 @@ namespace optimizers {
 
     void update(std::span<float> params, std::span<const float> grads, int context = -1) override {
       assert(params.size() == grads.size());
-      if (velocity_.size() != params.size()) {
-        velocity_.resize(params.size(), 0.0f);
+      std::unique_lock<std::mutex> lock(mutex_);
+      auto &vv = velocity_[context];
+      if (vv.size() != params.size()) {
+        vv.resize(params.size(), 0.0f);
       }
+      lock.unlock();
       float lr = get_scheduled_lr(lr_);
       for (size_t i = 0; i < params.size(); ++i) {
-        velocity_[i] = beta_ * velocity_[i] - lr * grads[i];
-        params[i] += velocity_[i];
+        vv[i] = beta_ * vv[i] - lr * grads[i];
+        params[i] += vv[i];
       }
-      increment_step();
+      incrementStep();
     }
 
   private:
     float lr_;
     float beta_;
-    std::vector<float> velocity_;
+    std::unordered_map<int, std::vector<float>> velocity_;
+    std::mutex mutex_;
   };
 
 
@@ -237,7 +351,7 @@ namespace optimizers {
         avg_grads[i] = beta_ * avg_grads[i] + (1 - beta_) * grads[i] * grads[i];
         params[i] -= lr * grads[i] / (std::sqrt(avg_grads[i]) + epsilon_);
       }
-      increment_step();
+      incrementStep();
     }
 
   private:
@@ -268,18 +382,19 @@ namespace optimizers {
       lock.unlock();
       const float beta1_t = std::pow(beta1_, ctx.t_);
       const float beta2_t = std::pow(beta2_, ctx.t_);
-      float lr = get_scheduled_lr(lr_);
+      const float lr = get_scheduled_lr(lr_);
       for (size_t i = 0; i < params.size(); ++i) {
+        const auto grad = std::clamp(grads[i], -1.f, 1.f);
         // Update biased moment estimates
-        ctx.m_[i] = beta1_ * ctx.m_[i] + (1 - beta1_) * grads[i];
-        ctx.v_[i] = beta2_ * ctx.v_[i] + (1 - beta2_) * grads[i] * grads[i];
+        ctx.m_[i] = beta1_ * ctx.m_[i] + (1 - beta1_) * grad;
+        ctx.v_[i] = beta2_ * ctx.v_[i] + (1 - beta2_) * grad * grad;
         // Compute bias-corrected moment estimates
         float m_hat = ctx.m_[i] / (1.0f - beta1_t);
         float v_hat = ctx.v_[i] / (1.0f - beta2_t);
         // Update parameters
         params[i] -= lr * m_hat / (std::sqrt(v_hat) + epsilon_);
       }
-      increment_step();
+      //incrementStep();
     }
 
   private:
