@@ -6,6 +6,7 @@
 #include <cassert>
 #include <span>
 #include <algorithm>
+#include <random>
 
 
 template <typename T = float>
@@ -111,6 +112,17 @@ public:
     for (size_t i = 0; i < rows_; ++i) {
       for (size_t j = 0; j < cols_; ++j) {
         result(j, i) = (*this)(i, j);
+      }
+    }
+    return result;
+  }
+
+  Matrix submatrix(size_t i, size_t n, size_t j, size_t m) const {
+    check_bounds(i + n - 1, j + m - 1);
+    Matrix result(n, m);
+    for (size_t row = 0; row < n; ++row) {
+      for (size_t col = 0; col < m; ++col) {
+        result(row, col) = (*this)(i + row, j + col);
       }
     }
     return result;
@@ -412,6 +424,110 @@ public:
       }
     }
     return result;
+  }
+
+  template <class T>
+  [[nodiscard]] static Matrix<T> covariance_matrix(const Matrix<T> &m) {
+    assert(!m.empty());
+    size_t n = m.rows();
+    size_t d = m.cols();
+    Matrix<T> cov(d, d, 0.0f);
+    std::vector<T> mean(d, 0.0f);
+    // Compute mean
+    for (size_t j = 0; j < d; ++j) {
+      for (size_t i = 0; i < n; ++i) {
+        mean[j] += m(i, j);
+      }
+      mean[j] /= n;
+    }
+    // Compute covariance
+    for (size_t i = 0; i < n; ++i) {
+      for (size_t j = 0; j < d; ++j) {
+        for (size_t k = 0; k < d; ++k) {
+          cov(j, k) += (m(i, j) - mean[j]) * (m(i, k) - mean[k]);
+        }
+      }
+    }
+    for (size_t j = 0; j < d; ++j) {
+      for (size_t k = 0; k < d; ++k) {
+        cov(j, k) /= (n - 1);
+      }
+    }
+    return cov;
+  }
+
+  // Returns eigenvalues and eigenvectors of a symmetric matrix
+  // For PCA, covariance matrix is always symmetric
+  [[nodiscard]] static std::pair<std::vector<float>, Matrix<float>> eigen(const Matrix<float> &A) {
+    const auto n = A.rows();
+    assert(n == A.cols()); // Must be square
+    std::vector<float> eigenvalues;
+    Matrix<float> eigenvectors(n, n);
+    Matrix<float> B = A; // Working copy
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+    const float tolerance = 1e-6f;
+    const size_t maxIterations = 1000;
+    for (size_t k = 0; k < n; ++k) {
+      // Initialize random vector
+      std::vector<float> v(n);
+      for (size_t i = 0; i < n; ++i) {
+        v[i] = dist(gen);
+      }
+      // Power iteration
+      float lambda = 0.0f;
+      for (size_t iter = 0; iter < maxIterations; ++iter) {
+        // v = B * v
+        std::vector<float> v_new(n, 0.0f);
+        for (size_t i = 0; i < n; ++i) {
+          for (size_t j = 0; j < n; ++j) {
+            v_new[i] += B.at(i, j) * v[j];
+          }
+        }
+        // Normalize and get eigenvalue
+        float norm = 0.0f;
+        for (float x : v_new) norm += x * x;
+        norm = std::sqrt(norm);
+        if (norm < tolerance) break;
+        float lambda_new = 0.0f;
+        for (size_t i = 0; i < n; ++i) {
+          v_new[i] /= norm;
+          lambda_new += v_new[i] * v[i]; // Rayleigh quotient approximation
+        }
+        // Check convergence
+        if (std::abs(lambda_new - lambda) < tolerance) break;
+        lambda = lambda_new;
+        v = v_new;
+      }
+      // Store eigenvalue and eigenvector
+      eigenvalues.push_back(lambda);
+      for (size_t i = 0; i < n; ++i) {
+        eigenvectors.at(i, k) = v[i];
+      }
+      // Deflate matrix: B = B - lambda * v * v^T
+      for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+          B.at(i, j) -= lambda * v[i] * v[j];
+        }
+      }
+    }
+    // Sort by eigenvalue magnitude (descending)
+    std::vector<std::pair<float, size_t>> pairs;
+    for (size_t i = 0; i < n; ++i) {
+      pairs.emplace_back(std::abs(eigenvalues[i]), i);
+    }
+    std::sort(pairs.begin(), pairs.end(), std::greater<>());
+    std::vector<float> sorted_eigenvalues(n);
+    Matrix<float> sorted_eigenvectors(n, n);
+    for (size_t i = 0; i < n; ++i) {
+      size_t idx = pairs[i].second;
+      sorted_eigenvalues[i] = eigenvalues[idx];
+      for (size_t j = 0; j < n; ++j) {
+        sorted_eigenvectors.at(j, i) = eigenvectors.at(j, idx);
+      }
+    }
+    return { sorted_eigenvalues, sorted_eigenvectors };
   }
 };
 
