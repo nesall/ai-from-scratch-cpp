@@ -21,6 +21,7 @@ extern void test_regularization();
 extern void test_q_learning();
 extern void test_kmeans();
 extern void test_pca();
+extern void test_ga();
 
 int main() {
   std::cout << "Running basic tests..." << std::endl;
@@ -52,6 +53,7 @@ int main() {
   //run(test_q_learning);
   run(test_kmeans);
   run(test_pca);
+  run(test_ga);
 
   return 0;
 }

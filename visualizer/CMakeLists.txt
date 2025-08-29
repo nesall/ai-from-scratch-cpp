@@ -26,7 +26,9 @@ add_executable(ai_visualizer
     vis_linear_regression.cpp
     vis_convolution.cpp 
     vis_optimizers.cpp 
+    vis_ga.cpp 
     ../src/models/linear_regression.cpp
+    ../src/models/ga.cpp
 )
 
 # Link SFML libraries to main executable

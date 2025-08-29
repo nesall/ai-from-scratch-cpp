@@ -25,6 +25,7 @@ add_executable(ai_main
     include/models/q_learning.hpp
     include/models/kmeans.hpp
     include/models/pca.hpp
+    include/models/ga.hpp
     src/main.cpp
     src/models/linear_regression.cpp
     src/models/logistic_regression.cpp
@@ -41,6 +42,7 @@ add_executable(ai_main
     src/models/q_learning.cpp
     src/models/kmeans.cpp
     src/models/pca.cpp
+    src/models/ga.cpp
 )
 
 # Include headers

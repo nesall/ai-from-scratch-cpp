@@ -18,6 +18,7 @@ add_executable(ai_tests
     test_regularization.cpp 
     test_q_learning.cpp 
     test_unsupervised.cpp 
+    test_ga.cpp 
     ../src/models/linear_regression.cpp
     ../src/models/logistic_regression.cpp
     ../src/models/knearest_neighbors.cpp
@@ -33,6 +34,7 @@ add_executable(ai_tests
     ../src/models/q_learning.cpp
     ../src/models/kmeans.cpp
     ../src/models/pca.cpp
+    ../src/models/ga.cpp
 
 )
 
