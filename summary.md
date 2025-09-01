@@ -1,4 +1,4 @@
-# AI From Scratch in C++ — Final Course Summary
+# AI From Scratch in C++
 
 ## Supervised Learning
 - Linear Regression (MSE Loss, Gradient Descent)
