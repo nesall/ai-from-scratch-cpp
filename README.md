@@ -27,8 +27,6 @@
 | 16   | Reinforcement Learning       | Q-learning, gridworld, Q-function, Bellman update rule |
 | 17   | Unsupervised Learning        | k-Means clustering, PCA - Principal Component Analysis |
 | 18   | Genetic Algorithms           | Evolutionary algorithms |
-| 19   | TO BE DECIDED                |  |
-| 20   | Final Projects               | Choose from CNN, chatbot, RL agent, etc |
 
 ---
 
@@ -45,11 +43,9 @@
 
 ## Final Outcome
 
-By the end of the course, you’ll have:
-- Your own mini ML library in C++
-- Deep understanding of classic AI/ML algorithms
-- Practical experience in building from scratch
+- ML library in C++
 - Reusable, testable, extendable codebase
+- SFML Playground
 
 ---
 
