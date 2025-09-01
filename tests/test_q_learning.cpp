@@ -41,7 +41,7 @@ void test_q_learning() {
   const int episodes = 200;
   for (int ep = 0; ep < episodes; ++ep) {
     env.reset();
-    auto state = env.getState();
+    auto state = env.state();
     int s = env.state2index(state);
 
     float totalReward = 0.0f;
@@ -77,12 +77,12 @@ void test_q_learning() {
 
   // Test the trained agent visually
   env.reset();
-  auto state = env.getState();
+  auto state = env.state();
   int s = env.state2index(state);
 
   bool done = false;
   while (!done) {
-    render(env, env.getState());
+    render(env, env.state());
     int a = agent.selectAction(s);
     auto [next_state, reward, finished] = env.step(static_cast<Action>(a));
     s = env.state2index(next_state);
@@ -90,7 +90,7 @@ void test_q_learning() {
     std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // pause to animate
   }
 
-  render(env, env.getState());
-  std::cout << "Final reward: " << (env.getState() == env.goal() ? "Reached Goal!" : "Fell in Trap!") << "\n";
+  render(env, env.state());
+  std::cout << "Final reward: " << (env.state() == env.goal() ? "Reached Goal!" : "Fell in Trap!") << "\n";
 
 }

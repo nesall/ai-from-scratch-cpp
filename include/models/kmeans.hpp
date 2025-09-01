@@ -1,11 +1,12 @@
 #pragma once
 #include <vector> 
 #include "matrix.hpp"
+#include "common.hpp"
 
 
 namespace models {
 
-  class KMeans {
+  class KMeans : public utils::StepBreaker {
   public:
     KMeans(int k, int maxIters = 300, bool use_kmeanspp = true);
     void fit(const Matrix<float> &X);

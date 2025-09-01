@@ -17,7 +17,7 @@ namespace utils {
       const std::vector<std::pair<int, int>> &traps);
 
     void reset();
-    std::pair<int, int> getState() const;
+    std::pair<int, int> state() const { return state_; }
     bool isTerminal(const std::pair<int, int> &state) const;
 
     // Step environment with an action
@@ -64,6 +64,8 @@ namespace models {
     void decayEpsilon(float decayRate = 0.99f, float minEpsilon = 0.01f);
 
     const Matrix<float> &q_table() const { return q_table_; }
+
+    int bestKnownAction(int state) const;
 
   private:
     int nStates_;

@@ -18,7 +18,8 @@ std::pair<float, float> plotGA(const ga::GeneticAlgorithm &ga, SimplePlotter &pl
 
 
 void vis_ga(SimplePlotter &plotter) {
-  plotter.setWindowSize(800, 600);
+  std::cout << "vis_ga\n";
+  plotter.setWindowSize(g_W, g_H);
   plotter.clearShapes();
   plotter.setDrawAxes(true);
 

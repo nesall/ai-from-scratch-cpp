@@ -136,7 +136,7 @@ std::vector<float> run_optimizer(const std::string &name, size_t steps, auto &op
 }
 
 void vis_optimizers(SimplePlotter &plotter) {
-  plotter.setWindowSize(800, 600);
+  plotter.setWindowSize(g_W, g_H);
   plotter.clearShapes();
   plotter.setDrawAxes(true);
 
@@ -194,7 +194,7 @@ namespace {
 }
 
 void vis_lr_noiseinducing(SimplePlotter &plotter) {
-  plotter.setWindowSize(800, 600);
+  plotter.setWindowSize(g_W, g_H);
   plotter.clearShapes();
   plotter.setDrawAxes(true);
   const float noiseRatio = 0.1f;
@@ -262,7 +262,7 @@ void vis_lr_noiseinducing(SimplePlotter &plotter) {
 }
 
 void vis_lr_others(SimplePlotter &plotter) {
-  plotter.setWindowSize(800, 600);
+  plotter.setWindowSize(g_W, g_H);
   plotter.clearShapes();
   plotter.setDrawAxes(true);
   const float noiseRatio = 0.1f;

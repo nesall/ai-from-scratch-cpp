@@ -27,8 +27,12 @@ add_executable(ai_visualizer
     vis_convolution.cpp 
     vis_optimizers.cpp 
     vis_ga.cpp 
+    vis_unsupervised.cpp
+    vis_qlearning.cpp
     ../src/models/linear_regression.cpp
     ../src/models/ga.cpp
+    ../src/models/q_learning.cpp
+    ../src/models/kmeans.cpp
 )
 
 # Link SFML libraries to main executable

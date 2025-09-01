@@ -13,11 +13,6 @@ void utils::Gridworld::reset()
   state_ = start_;
 }
 
-std::pair<int, int> utils::Gridworld::getState() const
-{
-  return state_;
-}
-
 bool utils::Gridworld::isTerminal(const std::pair<int, int> &state) const
 {
   if (state == goal_) return true;
@@ -93,18 +88,23 @@ int models::Q_LearningAgent::selectAction(int state)
     return action_dist(rng_);
   } else {
     // Exploit: best known action
-    int bestAction = 0;
-    float maxQ = q_table_.at(state, 0);
-    for (int a = 1; a < nActions_; ++a) {
-      float q = q_table_.at(state, a);
-      if (q > maxQ) {
-        maxQ = q;
-        bestAction = a;
-      }
-    }
-    return bestAction;
+    return bestKnownAction(state);
   }
   return 0;
+}
+
+int models::Q_LearningAgent::bestKnownAction(int state) const
+{
+  int bestAction = 0;
+  float maxQ = q_table_.at(state, 0);
+  for (int a = 1; a < nActions_; ++a) {
+    float q = q_table_.at(state, a);
+    if (q > maxQ) {
+      maxQ = q;
+      bestAction = a;
+    }
+  }
+  return bestAction;
 }
 
 void models::Q_LearningAgent::update(int state, int action, float reward, int nextState, bool done)

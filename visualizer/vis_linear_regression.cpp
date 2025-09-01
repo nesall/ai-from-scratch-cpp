@@ -8,7 +8,8 @@
 
 
 void vis_linear_regression(SimplePlotter &plotter) {
-  plotter.setWindowSize(800, 600);
+  std::cout << "vis_linear_regression\n";
+  plotter.setWindowSize(g_W, g_H);
   plotter.clearShapes();
   plotter.setDrawAxes(true);
   const int num_samples = 100;
@@ -25,7 +26,7 @@ void vis_linear_regression(SimplePlotter &plotter) {
   }
 
 #if 1
-  models::LinearRegression linreg(0.01f, 300);
+  models::LinearRegression linreg(0.01f, 50);
   linreg.setStepCallback([&]()
     {
       auto x0 = { 1.f };

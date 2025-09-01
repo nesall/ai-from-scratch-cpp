@@ -106,6 +106,11 @@ void models::KMeans::fit(const Matrix<float> &X)
       }
     }
     centroids_ = new_centroids;
+
+    if (stepf_ && !stepf_()) {
+      break;
+    }
+
     if (!changed) {
       break; // Converged
     }

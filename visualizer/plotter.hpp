@@ -7,6 +7,10 @@
 #include <functional>
 #include <cmath>
 
+const unsigned g_W = 1000;
+const unsigned g_H = 720;
+
+
 
 struct DrawContext {
   sf::RenderWindow *window_ = nullptr;
@@ -120,23 +124,75 @@ public:
     DrawContext::window_ = &window_;
   }
 
-  void addShape(std::unique_ptr<Shape> shape) {
+  std::function<void()> addShape(std::unique_ptr<Shape> shape) {
+    Shape *ptr = shape.get();
     shapes_.push_back(std::move(shape));
+    return [this, ptr] {
+      auto it = std::find_if(shapes_.begin(), shapes_.end(), [ptr](const std::unique_ptr<Shape> &s) { return s.get() == ptr; });
+      if (it != shapes_.end()) shapes_.erase(it);
+      };
   }
 
-  void addCircle(float radius, const sf::Vector2f &position, const sf::Color &color = sf::Color::Red) {
+  std::function<void()> addCircle(float radius, const sf::Vector2f &position, const sf::Color &color = sf::Color::Red) {
     auto pos{ position };
     pos.x -= radius;
     pos.y -= radius; // Center the circle at the position
-    addShape(std::make_unique<Circle>(radius, pos, color));
+    return addShape(std::make_unique<Circle>(radius, pos, color));
   }
 
-  void addLine(const sf::Vector2f &start, const sf::Vector2f &end, const sf::Color &color = sf::Color::Blue) {
-    addShape(std::make_unique<Line>(start, end, color));
+  std::function<void()> addLine(const sf::Vector2f &start, const sf::Vector2f &end, const sf::Color &color = sf::Color::Blue) {
+    return addShape(std::make_unique<Line>(start, end, color));
   }
 
-  void addText(const sf::Vector2f &position, const std::string &str, const sf::Color &color = sf::Color::Black) {
-    addShape(std::make_unique<Text>(position, color, font, str));
+  std::function<void()> addText(const sf::Vector2f &position, const std::string &str, const sf::Color &color = sf::Color::Black) {
+    return addShape(std::make_unique<Text>(position, color, font, str));
+  }
+
+  void addPolyline(const std::vector<sf::Vector2f> &points, const sf::Color &color = sf::Color::Blue) {
+    for (size_t i = 1; i < points.size(); ++i) {
+      addLine(points[i - 1], points[i], color);
+    }
+  }
+
+  void addPoints(const std::vector<sf::Vector2f> &points, const sf::Color &color, float radius = 3.f) {
+    for (auto &p : points) {
+      addCircle(radius, p, color);
+    }
+  }
+
+  // Adds legend to the right bottom corner.
+  void setLegend(const std::vector<std::string> &textLines) {
+    const float padding = 10.f;
+    const float lineHeight = 20.f;
+    float legendWidth = 0.f;
+    for (const auto &line : textLines) {
+      sf::Text tempText;
+      tempText.setFont(font);
+      tempText.setString(line);
+      tempText.setCharacterSize(14);
+      float w = tempText.getLocalBounds().width;
+      if (w > legendWidth)
+        legendWidth = w;
+    }
+    legendWidth += 2 * padding;
+    float legendHeight = textLines.size() * lineHeight + 2 * padding;
+    sf::RectangleShape legendBg(sf::Vector2f(legendWidth, legendHeight));
+    legendBg.setFillColor(sf::Color(255, 255, 255, 200)); // Semi-transparent white
+    legendBg.setOutlineColor(sf::Color::Black);
+    legendBg.setOutlineThickness(1.f);
+    legendBg.setPosition(window_.getSize().x - legendWidth - margin_, window_.getSize().y - legendHeight - margin_);
+    window_.draw(legendBg);
+    float y = window_.getSize().y - legendHeight - margin_ + padding;
+    for (const auto &line : textLines) {
+      sf::Text legendText;
+      legendText.setFont(font);
+      legendText.setString(line);
+      legendText.setCharacterSize(14);
+      legendText.setFillColor(sf::Color::Black);
+      legendText.setPosition(window_.getSize().x - legendWidth - margin_ + padding, y);
+      window_.draw(legendText);
+      y += lineHeight;
+    }
   }
 
   void clearShapes() {
@@ -156,20 +212,6 @@ public:
   }
 
   void drawNextFrame() {
-    float plotWidth = window_.getSize().x - 2 * margin_;
-    float plotHeight = window_.getSize().y - 2 * margin_;
-
-    sf::Event event;
-    while (window_.pollEvent(event)) {
-      if (event.type == sf::Event::Closed)
-        window_.close();
-      else if (event.type == sf::Event::MouseMoved) {
-        onMouseMove(event.mouseMove.x, event.mouseMove.y);
-      } else if (event.type == sf::Event::MouseButtonPressed) {
-        onMouseButtonPress(event.mouseButton.button, event.mouseButton.x, event.mouseButton.y);
-      }
-    }
-
     window_.clear(backgroundColor);
 
     sf::Sprite sprite(bgTexture_);
@@ -178,6 +220,8 @@ public:
       window_.draw(sprite);
     }
 
+    float plotWidth = window_.getSize().x - 2 * margin_;
+    float plotHeight = window_.getSize().y - 2 * margin_;
     if (drawAxes_)
       drawAxes(plotWidth, plotHeight);
 
@@ -188,6 +232,20 @@ public:
     drawTabs();
 
     window_.display();
+
+  }
+  void processNextFrame() {
+    sf::Event event;
+    while (window_.pollEvent(event)) {
+      if (event.type == sf::Event::Closed)
+        window_.close();
+      else if (event.type == sf::Event::MouseMoved) {
+        onMouseMove(event.mouseMove.x, event.mouseMove.y);
+      } else if (event.type == sf::Event::MouseButtonReleased) {
+        onMouseButtonRelease(event.mouseButton.button, event.mouseButton.x, event.mouseButton.y);
+      }
+    }
+    drawNextFrame();
   }
 
   void setDrawAxes(bool f) {
@@ -225,7 +283,7 @@ public:
 
   void start() {
     while (window_.isOpen()) {
-      drawNextFrame();
+      processNextFrame();
       std::this_thread::sleep_for(std::chrono::milliseconds(16)); // Control the frame rate
     }
   }
@@ -276,16 +334,6 @@ private:
       sf::FloatRect textBounds = tabText.getLocalBounds();
       tabText.setPosition(x + (tabWidth - padding - textBounds.width) / 2.f, y + (tabHeight - textBounds.height) / 2.f - 5);
       window_.draw(tabText);
-      // Handle mouse click
-      if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        sf::Vector2i mousePos = sf::Mouse::getPosition(window_);
-        if (mousePos.x >= x && mousePos.x <= x + tabWidth - padding &&
-          mousePos.y >= y && mousePos.y <= y + tabHeight) {
-          tab.func(); // Call the associated function
-          // Simple debounce
-          std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        }
-      }
       x += tabWidth;
     }
   }
@@ -312,8 +360,7 @@ public:
 
   }
 
-  void onMouseButtonPress(sf::Mouse::Button button, int x, int y) {
-    // Handle mouse button press (e.g., select tab, interact with plot, etc.)
+  void onMouseButtonRelease(sf::Mouse::Button button, int x, int y) {
     if (button == sf::Mouse::Left) {
       // Check if a tab was clicked
       const float padding = 5;
@@ -325,8 +372,8 @@ public:
       float tabX = padding;
       float tabY = padding;
       for (const auto &tab : tabs_) {
-        if (x >= tabX && x <= tabX + tabWidth - padding &&
-          y >= tabY && y <= tabY + tabHeight) {
+        if (x >= tabX && x <= tabX + tabWidth - padding && y >= tabY && y <= tabY + tabHeight) {
+          //std::cout << "mouseButtonRelease\n";
           tab.func(); // Call the associated function
           // Simple debounce
           std::this_thread::sleep_for(std::chrono::milliseconds(200));
