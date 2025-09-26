@@ -46,11 +46,11 @@ int main() {
   run(test_matrix);
   run(test_perceptron);
   run(test_mlp);
-  //run(test_mnist_mlp);// takes a while
-  //run(test_conv);
-  //run(test_cnn);
-  //run(test_rnn);
-  //run(test_q_learning);
+  run(test_mnist_mlp);// takes a while
+  run(test_conv);
+  run(test_cnn);
+  run(test_rnn);
+  run(test_q_learning);
   run(test_kmeans);
   run(test_pca);
   run(test_ga);
